@@ -1,0 +1,9 @@
+{
+  "name": "octolab",
+  "description": "Skills to use OctoLab products",
+  "owner": {
+    "name": "OctoLab",
+    "url": "https://www.octolab.org/"
+  },
+  "plugins": []
+}

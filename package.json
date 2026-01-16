@@ -1,0 +1,15 @@
+{
+  "name": "octolab-skills",
+  "private": true,
+  "description": "Skills to use OctoLab products",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test tests/",
+    "generate": "node scripts/generate.mjs",
+    "check": "node scripts/generate.mjs --check && node scripts/validate.mjs"
+  }
+}

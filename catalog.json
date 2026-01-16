@@ -1,0 +1,20 @@
+{
+  "marketplace": {
+    "name": "octolab",
+    "description": "Skills to use OctoLab products",
+    "owner": {
+      "name": "OctoLab",
+      "url": "https://www.octolab.org/"
+    }
+  },
+  "tools": {
+    "indexit": {
+      "repository": "octopot/indexit",
+      "skill": "skills/indexit",
+      "description": "Teach your coding agent to export Telegram data with the indexit CLI",
+      "homepage": "https://indexit.octolab.org/",
+      "license": "MIT",
+      "keywords": ["telegram", "export", "jsonl", "cli"]
+    }
+  }
+}
