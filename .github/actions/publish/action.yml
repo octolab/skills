@@ -1,0 +1,76 @@
+name: Publish a skill to octolab/skills
+description: >-
+  Copies a tool's released skill into the octolab/skills catalog, regenerates
+  the plugin and marketplace manifests, and tags the publication as
+  <tool>--v<version>. Run it from the tool's release workflow after the
+  GitHub release exists.
+
+inputs:
+  tool:
+    description: Tool name registered in catalog.json, e.g. indexit.
+    required: true
+  source-tag:
+    description: Release tag of the tool, e.g. v0.2.0.
+    required: false
+    default: ${{ github.ref_name }}
+  source-sha:
+    description: Commit the workflow released.
+    required: false
+    default: ${{ github.sha }}
+  token:
+    description: Token with contents write access to the catalog repository.
+    required: true
+  source-token:
+    description: Token that can read the tool repository.
+    required: false
+    default: ${{ github.token }}
+  catalog-repository:
+    description: Catalog repository.
+    required: false
+    default: octolab/skills
+  dry-run:
+    description: Print the plan without writing to the catalog.
+    required: false
+    default: 'false'
+  allow-unverified-tag:
+    description: Accept an unsigned or unverified release tag. A maintainer exception, not a default.
+    required: false
+    default: 'false'
+
+outputs:
+  changed:
+    description: Whether this run wrote a new publication.
+    value: ${{ steps.publish.outputs.changed }}
+  catalog-commit:
+    description: Catalog commit that holds this release.
+    value: ${{ steps.publish.outputs.catalog-commit }}
+  catalog-tag:
+    description: Catalog tag of this release, <tool>--v<version>.
+    value: ${{ steps.publish.outputs.catalog-tag }}
+  payload-digest:
+    description: Digest of the published skill directory.
+    value: ${{ steps.publish.outputs.payload-digest }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v7.0.0
+      with:
+        node-version: 24
+    - name: Publish
+      id: publish
+      shell: bash
+      env:
+        TOOL: ${{ inputs.tool }}
+        SOURCE_TAG: ${{ inputs.source-tag }}
+        SOURCE_SHA: ${{ inputs.source-sha }}
+        CALLER_REPOSITORY: ${{ github.repository }}
+        CATALOG_REPOSITORY: ${{ inputs.catalog-repository }}
+        CATALOG_TOKEN: ${{ inputs.token }}
+        SOURCE_TOKEN: ${{ inputs.source-token }}
+        DRY_RUN: ${{ inputs.dry-run }}
+        ALLOW_UNVERIFIED_TAG: ${{ inputs.allow-unverified-tag }}
+        PUBLISHER: octolab/skills/.github/actions/publish@${{ github.action_ref }}
+      # The action's own scripts, at the revision the caller pinned.
+      run: node "${GITHUB_ACTION_PATH}/../../../scripts/publish.mjs"
