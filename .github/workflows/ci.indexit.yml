@@ -1,0 +1,126 @@
+name: ci (indexit)
+
+# Installs a published indexit skill from GitHub through every channel, the
+# way users do, and compares each installed copy with the tool's release.
+# Runs for each new indexit--v* tag and weekly for the latest one; older tags
+# are checked only on demand, through the tag input. Product checks follow the
+# tap's ci.<product>.yml convention.
+
+on:
+  push:
+    tags: [ 'indexit--v*' ]
+  schedule:
+    - cron: 0 7 * * 1 # at 07:00 on Monday, UTC
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The catalog tag to check, e.g. indexit--v0.2.0; the latest by default.
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  CLAUDE_CODE_VERSION: 2.1.289
+  CODEX_VERSION: 0.160.0
+  SKILLS_VERSION: 1.7.0
+
+jobs:
+  install:
+    name: Install indexit
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v7.0.1
+        with: { fetch-depth: 0 }
+      - name: Resolve the catalog tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = tag ]; then tag="${GITHUB_REF_NAME}"
+          elif [ -n "${INPUT_TAG}" ]; then tag="${INPUT_TAG}"
+          else tag="$(git tag --list 'indexit--v*' --sort=-v:refname | head -n 1)"
+          fi
+          if [ -z "${tag}" ]; then
+            echo '::notice::indexit is not published yet'
+            exit 0
+          fi
+          git checkout --quiet "${tag}"
+          echo "tag=${tag}" >>"${GITHUB_OUTPUT}"
+          echo "version=${tag#indexit--v}" >>"${GITHUB_OUTPUT}"
+      - name: Set up Node.js
+        if: steps.tag.outputs.tag
+        uses: actions/setup-node@v7.0.0
+        with: { node-version: 24 }
+      - name: Install the agent CLIs
+        if: steps.tag.outputs.tag
+        run: npm install --global "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" "@openai/codex@${CODEX_VERSION}"
+
+      - name: Compare the payload with the tool release
+        if: steps.tag.outputs.tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          read -r repo tag path < <(node -p "const p = require('./plugins/indexit/provenance.json'); [p.source.repository, p.source.tag, p.source.path].join(' ')")
+          src="$(mktemp -d)"
+          gh release download "${tag}" --repo "${repo}" --archive tar.gz --output - | tar -xz -C "${src}" --strip-components 1
+          diff -r "${src}/${path}" plugins/indexit/skills/indexit
+
+      - name: Install with the skills CLI
+        if: steps.tag.outputs.tag
+        env:
+          DISABLE_TELEMETRY: '1'
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          dir="$(mktemp -d)"
+          ( cd "${dir}" && npx -y "skills@${SKILLS_VERSION}" add "${GITHUB_REPOSITORY}#${TAG}" \
+              --skill indexit -a claude-code -a codex --copy -y )
+          diff -r plugins/indexit/skills/indexit "${dir}/.claude/skills/indexit"
+          diff -r plugins/indexit/skills/indexit "${dir}/.agents/skills/indexit"
+
+      - name: Install, check and remove with Claude Code
+        if: steps.tag.outputs.tag
+        env:
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/claude
+          CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
+          CLAUDE_CODE_PLUGIN_PREFER_HTTPS: '1'
+          TAG: ${{ steps.tag.outputs.tag }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          claude plugin marketplace add "${GITHUB_REPOSITORY}#${TAG}"
+          claude plugin install indexit@octolab
+          # shellcheck disable=SC2016 # ${...} below is a JavaScript template
+          path="$(claude plugin list --json | node -e '
+            const got = JSON.parse(require("fs").readFileSync(0, "utf8")).find((p) => p.id === "indexit@octolab")
+            if (!got?.enabled || got.version !== process.env.VERSION) {
+              console.error(`indexit@octolab: want ${process.env.VERSION} enabled, got ${JSON.stringify(got)}`)
+              process.exit(1)
+            }
+            console.log(got.installPath)')"
+          diff -r plugins/indexit/skills/indexit "${path}/skills/indexit"
+          claude plugin uninstall indexit@octolab
+          claude plugin marketplace remove octolab
+
+      - name: Install, check and remove with Codex
+        if: steps.tag.outputs.tag
+        env:
+          CODEX_HOME: ${{ runner.temp }}/codex
+          TAG: ${{ steps.tag.outputs.tag }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          mkdir -p "${CODEX_HOME}"
+          codex plugin marketplace add "${GITHUB_REPOSITORY}" --ref "${TAG}"
+          codex plugin add indexit@octolab
+          list="$(codex plugin list)"
+          grep -E "^indexit@octolab +installed, enabled +${VERSION} " <<<"${list}"
+          diff -r plugins/indexit/skills/indexit "${CODEX_HOME}/plugins/cache/octolab/indexit/${VERSION}/skills/indexit"
+          codex plugin remove indexit@octolab
+          codex plugin marketplace remove octolab
+          list="$(codex plugin list 2>&1 || true)"
+          if grep -q 'indexit@octolab' <<<"${list}"; then
+            echo 'indexit@octolab is still listed after removal' >&2
+            exit 1
+          fi

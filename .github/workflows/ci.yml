@@ -1,0 +1,88 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: 0 7 1 * * # at 07:00 on day-of-month 1, UTC
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: The reason for dispatching it manually.
+        type: string
+        default: manual healthcheck
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  CLAUDE_CODE_VERSION: 2.1.289
+  CODEX_VERSION: 0.160.0
+  SKILLS_VERSION: 1.7.0
+
+jobs:
+  check:
+    name: Check the catalog
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v7.0.1
+        with: { fetch-depth: 0 }
+      - name: Set up Node.js
+        uses: actions/setup-node@v7.0.0
+        with: { node-version: 24 }
+      - name: Install the agent CLIs
+        run: npm install --global "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" "@openai/codex@${CODEX_VERSION}"
+
+      - name: Run tests
+        run: npm test
+      - name: Check generated files
+        run: node scripts/generate.mjs --check
+      - name: Validate the catalog and its tags
+        run: node scripts/validate.mjs --tags
+
+      - name: Validate for Claude Code
+        env:
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/claude
+          CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
+        run: node scripts/claude-validate.mjs
+
+      - name: Check discovery by the skills CLI
+        env:
+          DISABLE_TELEMETRY: '1'
+        run: |
+          out="${RUNNER_TEMP}/skills.json"
+          ( cd "$(mktemp -d)" && npx -y "skills@${SKILLS_VERSION}" add "${GITHUB_WORKSPACE}" \
+              --skill '*' -a claude-code --copy -y --json >"${out}" ) || true
+          node scripts/validate.mjs --discovery "${out}"
+
+      # A directory marketplace loads plugins in place: this checks that the
+      # manifests install, not the GitHub path users take (ci.<tool>.yml does).
+      - name: Install with Claude Code
+        env:
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/claude-install
+          CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
+        run: |
+          claude plugin marketplace add "${GITHUB_WORKSPACE}"
+          for plugin in $(node -p "require('./.claude-plugin/marketplace.json').plugins.map(p => p.name).join(' ')"); do
+            claude plugin install "${plugin}@octolab"
+          done
+          claude plugin list
+
+      - name: Install and remove with Codex
+        env:
+          CODEX_HOME: ${{ runner.temp }}/codex
+        run: |
+          mkdir -p "${CODEX_HOME}"
+          codex plugin marketplace add "${GITHUB_WORKSPACE}"
+          for plugin in $(node -p "require('./.claude-plugin/marketplace.json').plugins.map(p => p.name).join(' ')"); do
+            codex plugin add "${plugin}@octolab"
+            version="$(node -p "require('./plugins/${plugin}/provenance.json').version")"
+            diff -r "plugins/${plugin}/skills/${plugin}" "${CODEX_HOME}/plugins/cache/octolab/${plugin}/${version}/skills/${plugin}"
+            codex plugin remove "${plugin}@octolab"
+          done
+          codex plugin marketplace remove octolab
