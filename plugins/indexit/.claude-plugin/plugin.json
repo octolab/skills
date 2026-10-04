@@ -1,0 +1,18 @@
+{
+  "name": "indexit",
+  "version": "0.2.0",
+  "description": "Teach your coding agent to export Telegram data with the indexit CLI",
+  "author": {
+    "name": "OctoLab",
+    "url": "https://www.octolab.org/"
+  },
+  "homepage": "https://indexit.octolab.org/",
+  "repository": "https://github.com/octopot/indexit",
+  "license": "MIT",
+  "keywords": [
+    "telegram",
+    "export",
+    "jsonl",
+    "cli"
+  ]
+}

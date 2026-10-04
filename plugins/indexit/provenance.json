@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "tool": "indexit",
+  "version": "0.2.0",
+  "source": {
+    "repository": "octopot/indexit",
+    "tag": "v0.2.0",
+    "commit": "5399e5e8561a98b1e62739ae2dbf7f08c4b034f3",
+    "path": "skills/indexit"
+  },
+  "digest": {
+    "algorithm": "octolab-skill-sha256-v1",
+    "value": "sha256:dad312257f7ab86a9dc52aa206dabfcda40adfa9358bca9979adeaf5d7073717"
+  },
+  "publisher": "octolab/skills/.github/actions/publish@ca9113a9489baf116638053997ec9d2179bfc9a5"
+}

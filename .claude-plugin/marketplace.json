@@ -5,5 +5,11 @@
     "name": "OctoLab",
     "url": "https://www.octolab.org/"
   },
-  "plugins": []
+  "plugins": [
+    {
+      "name": "indexit",
+      "description": "Teach your coding agent to export Telegram data with the indexit CLI",
+      "source": "./plugins/indexit"
+    }
+  ]
 }
