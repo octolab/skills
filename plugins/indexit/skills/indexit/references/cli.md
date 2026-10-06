@@ -198,7 +198,12 @@ Flags of every `indexit telegram fetch` command:
 
 ## indexit telegram fetch dialogs
 
-Fetch Telegram dialogs
+Fetch Telegram dialogs as JSONL and populate the peer cache.
+
+Channels and groups include the current account's is_member, is_admin,
+and is_creator status from the same response, without per-peer requests.
+Owners count as admins. Known false values are explicit; unknown status
+is omitted. User dialogs have no account status fields.
 
 ```text
 indexit telegram fetch dialogs
@@ -282,6 +287,10 @@ dialog address, a t.me/c/<id> link, or a t.me/+<hash> or t.me/joinchat/<hash>
 invite link. Channels and groups are read in full: description, members,
 and the linked discussion group or channel. Invite links are only
 previewed: indexit never joins a chat.
+
+Channel and group cards include is_member, is_admin (owners included),
+and is_creator for the current account when known. Unknown status is
+omitted; known false values are explicit.
 
 A ref that cannot be parsed or fetched yields a record with an error
 instead of stopping the run. The command fails only when no record was

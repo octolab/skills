@@ -7,14 +7,15 @@ Logs, warnings and progress go to stderr.
 
 | `_kind` | Identifying fields | Also carries |
 | --- | --- | --- |
-| `dialog` | `uid`, `peer_type`, `peer_id` | title, username, forum status, unread count, flags |
+| `dialog` | `uid`, `peer_type`, `peer_id` | title, username, forum status, unread count, account status, flags |
 | `topic` | `dialog_uid`, `topic_id` | title, creation date, top message, counters, flags |
-| `peer` | `ref`, `uid` | `peer_type`, title, usernames, `about`, `participants_count`, linked chat, flags, `invite`, or `error` |
+| `peer` | `ref`, `uid` | `peer_type`, title, usernames, `about`, `participants_count`, linked chat, account status, flags, `invite`, or `error` |
 | `message` | `dialog_uid`, `id` | `date`, `text`, optional sender (`from`), topic, media description, replies, forwards |
 | `media` | `dialog_uid`, `message_id`, `path` | `type`, date, size, `grouped_id` for albums, `skipped`, or `error` |
 
-- Optional fields can be absent, including false flags and zero counters; keep
-  readers tolerant of missing and extra fields. There is no schema version.
+- Optional fields can be absent, including most false flags and zero counters;
+  account status preserves known false values (see below). Keep readers tolerant
+  of missing and extra fields. There is no schema version.
 - Dates are RFC3339 in UTC. Text is plain; formatting entities are not
   exported. Reactions are a total, not per emoji.
 - IDs can need 64-bit precision, `grouped_id` especially; use a reader that
@@ -23,6 +24,38 @@ Logs, warnings and progress go to stderr.
   Album frames share `grouped_id`; order them by numeric `message_id`.
 - `uid` values (`channel:<id>`, `chat:<id>`, `user:<id>`) are valid
   `--dialog` addresses.
+
+## Account status
+
+`dialog` and `peer` records can include these booleans for the signed-in
+account in a channel, supergroup (including a gigagroup), or basic group:
+
+| Field | Meaning |
+| --- | --- |
+| `is_member` | The account currently belongs to this chat; false for chats it left and for migrated or deactivated basic groups |
+| `is_admin` | The account is the owner or has admin rights |
+| `is_creator` | The account is the owner |
+
+Known values are always emitted, including `false`. Missing means unknown or
+not applicable: reduced (`min`) channels, channel direct-message inboxes
+(monoforums), inaccessible or missing entities, invite-only previews, and
+users/bots have no account status fields. For invite
+links, `invite.member` separately describes membership reported by the invite.
+Old binaries may also omit all three fields. Never turn an absent field into
+`false` when selecting non-admins. Report unknown status separately.
+
+Telegram may retain owner/admin flags on a migrated basic group or a channel
+the owner left. To select owned chats the account currently belongs to, also
+require `is_member == true`.
+
+A peer record with `error` can retain status from a usable entity already
+returned by an invite check, even if the subsequent full fetch fails. Check
+`error` before relying on the rest of the card.
+
+`fetch dialogs` reads status from its existing pages; no per-peer requests
+are added. Names and member counts do not establish ownership or admin status.
+These fields cannot identify chats owned by another person when the signed-in
+account is an ordinary member.
 
 ## Peer errors
 

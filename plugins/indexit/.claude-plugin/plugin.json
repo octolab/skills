@@ -1,6 +1,6 @@
 {
   "name": "indexit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Teach your coding agent to export Telegram data with the indexit CLI",
   "author": {
     "name": "OctoLab",

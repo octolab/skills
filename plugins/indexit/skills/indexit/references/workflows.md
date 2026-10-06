@@ -1,6 +1,6 @@
 # Workflows
 
-Recipes for indexit `>=0.2.0 <0.3.0`. Substitute the user's real addresses;
+Recipes for indexit `>=0.2.1 <0.3.0`. Substitute the user's real addresses;
 `@example_channel`, `@example_forum` and the numbers below are placeholders.
 
 ## Set up and sign in
@@ -40,6 +40,33 @@ indexit -q telegram fetch dialogs \
 
 Pick the row whose title the user names and use its `uid` with `--dialog`.
 Listing dialogs also fills the peer cache that numeric addresses need.
+
+## Find memberships without admin rights
+
+Fetch once, then select channels and groups where the signed-in account is
+an ordinary member. Owners are included in `is_admin` and excluded here:
+
+```sh
+indexit -q telegram fetch dialogs \
+  | jq -c 'select(.peer_type | IN("channel", "supergroup", "chat")) | select(.is_member == true and .is_admin == false)'
+```
+
+This uses the status in the dialog response without a `fetch peer` call for
+each chat. If the user's destination supports only channels and supergroups,
+remove `"chat"` from `IN(...)`. For owned chats the account currently belongs
+to, select `is_member == true` and `is_creator == true`; Telegram can retain
+ownership on a migrated basic group or a channel the owner left.
+
+An absent status field is unknown or not applicable, not `false`. In the
+same export, report channel/group records with `.is_member == null` or
+`.is_admin == null` separately. Do not replace the explicit `== false` check
+with `not` or `// false`: that would admit unknowns and old exports. Names
+and member counts cannot decide which chats belong to the user or a partner;
+use an explicit list for exclusions about another person's ownership.
+
+An empty selection is not proof that the account has no matching memberships.
+If all channel/group records lack the status fields, check `indexit version`
+and the binary's `fetch dialogs --help` for support, and upgrade if needed.
 
 ## Read a period
 
