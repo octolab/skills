@@ -53,7 +53,7 @@ jobs:
           echo "version=${tag#indexit--v}" >>"${GITHUB_OUTPUT}"
       - name: Set up Node.js
         if: steps.tag.outputs.tag
-        uses: actions/setup-node@v7.0.0
+        uses: actions/setup-node@v7.1.0
         with: { node-version: 24 }
       - name: Install the agent CLIs
         if: steps.tag.outputs.tag
