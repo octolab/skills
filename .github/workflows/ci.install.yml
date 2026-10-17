@@ -1,0 +1,147 @@
+name: ci (install)
+
+# Installs a published skill from GitHub through every channel, the way users
+# do, and compares each installed copy with the tool's release. Runs for each
+# new <tool>--v* tag and weekly for the latest tag of every tool; older tags
+# are checked only on demand, through the tag input.
+
+on:
+  push:
+    tags: [ '*--v*' ]
+  schedule:
+    - cron: 0 7 * * 1 # at 07:00 on Monday, UTC
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The catalog tag to check, e.g. indexit--v0.2.0; the latest of every tool by default.
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  CLAUDE_CODE_VERSION: 2.1.289
+  CODEX_VERSION: 0.160.0
+  SKILLS_VERSION: 1.7.0
+
+jobs:
+  tags:
+    name: Resolving the tags
+    runs-on: ubuntu-24.04
+    outputs:
+      tags: ${{ steps.tags.outputs.tags }}
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v7.0.1
+        with: { fetch-depth: 0 }
+      - name: Resolve the catalog tags
+        id: tags
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = tag ]; then tags="${GITHUB_REF_NAME}"
+          elif [ -n "${INPUT_TAG}" ]; then tags="${INPUT_TAG}"
+          else
+            tags=''
+            for dir in plugins/*/; do
+              [ -d "${dir}" ] || continue
+              tool="$(basename "${dir}")"
+              tag="$(git tag --list "${tool}--v*" --sort=-v:refname | head -n 1)"
+              [ -n "${tag}" ] && tags="${tags} ${tag}"
+            done
+          fi
+          # shellcheck disable=SC2016,SC2086 # ${...} is a JavaScript template; one tag per word
+          json="$(node -e 'console.log(JSON.stringify(process.argv.slice(1).map((tag) => {
+            const [, tool, version] = tag.match(/^([a-z0-9-]+)--v(\d+\.\d+\.\d+)$/) || []
+            if (!tool) {
+              console.error(`::error::${tag}: not a catalog tag <tool>--vX.Y.Z`)
+              process.exit(1)
+            }
+            return { tag, tool, version }
+          })))' ${tags})"
+          if [ "${json}" = '[]' ]; then echo '::notice::nothing is published yet'; fi
+          echo "tags=${json}" >>"${GITHUB_OUTPUT}"
+
+  install:
+    name: Install ${{ matrix.tool }} ${{ matrix.version }}
+    needs: [ tags ]
+    if: needs.tags.outputs.tags != '[]'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.tags.outputs.tags) }}
+    env:
+      TAG: ${{ matrix.tag }}
+      TOOL: ${{ matrix.tool }}
+      VERSION: ${{ matrix.version }}
+
+    steps:
+      - name: Checkout the tag
+        uses: actions/checkout@v7.0.1
+        with: { ref: '${{ matrix.tag }}' }
+      - name: Set up Node.js
+        uses: actions/setup-node@v7.1.0
+        with: { node-version: 24 }
+      - name: Install the agent CLIs
+        run: npm install --global "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" "@openai/codex@${CODEX_VERSION}"
+
+      - name: Compare the payload with the tool release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          read -r repo tag path < <(node -p "const p = require('./plugins/${TOOL}/provenance.json'); [p.source.repository, p.source.tag, p.source.path].join(' ')")
+          src="$(mktemp -d)"
+          gh release download "${tag}" --repo "${repo}" --archive tar.gz --output - | tar -xz -C "${src}" --strip-components 1
+          diff -r "${src}/${path}" "plugins/${TOOL}/skills/${TOOL}"
+
+      - name: Install with the skills CLI
+        env:
+          DISABLE_TELEMETRY: '1'
+        run: |
+          dir="$(mktemp -d)"
+          ( cd "${dir}" && npx -y "skills@${SKILLS_VERSION}" add "${GITHUB_REPOSITORY}#${TAG}" \
+              --skill "${TOOL}" -a claude-code -a codex --copy -y )
+          diff -r "plugins/${TOOL}/skills/${TOOL}" "${dir}/.claude/skills/${TOOL}"
+          diff -r "plugins/${TOOL}/skills/${TOOL}" "${dir}/.agents/skills/${TOOL}"
+
+      - name: Install, check and remove with Claude Code
+        env:
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/claude
+          CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
+          CLAUDE_CODE_PLUGIN_PREFER_HTTPS: '1'
+        run: |
+          claude plugin marketplace add "${GITHUB_REPOSITORY}#${TAG}"
+          claude plugin install "${TOOL}@octolab"
+          # shellcheck disable=SC2016 # ${...} below is a JavaScript template
+          path="$(claude plugin list --json | node -e '
+            const id = `${process.env.TOOL}@octolab`
+            const got = JSON.parse(require("fs").readFileSync(0, "utf8")).find((p) => p.id === id)
+            if (!got?.enabled || got.version !== process.env.VERSION) {
+              console.error(`${id}: want ${process.env.VERSION} enabled, got ${JSON.stringify(got)}`)
+              process.exit(1)
+            }
+            console.log(got.installPath)')"
+          diff -r "plugins/${TOOL}/skills/${TOOL}" "${path}/skills/${TOOL}"
+          claude plugin uninstall "${TOOL}@octolab"
+          claude plugin marketplace remove octolab
+
+      - name: Install, check and remove with Codex
+        env:
+          CODEX_HOME: ${{ runner.temp }}/codex
+        run: |
+          mkdir -p "${CODEX_HOME}"
+          codex plugin marketplace add "${GITHUB_REPOSITORY}" --ref "${TAG}"
+          codex plugin add "${TOOL}@octolab"
+          list="$(codex plugin list)"
+          grep -E "^${TOOL}@octolab +installed, enabled +${VERSION} " <<<"${list}"
+          diff -r "plugins/${TOOL}/skills/${TOOL}" "${CODEX_HOME}/plugins/cache/octolab/${TOOL}/${VERSION}/skills/${TOOL}"
+          codex plugin remove "${TOOL}@octolab"
+          codex plugin marketplace remove octolab
+          list="$(codex plugin list 2>&1 || true)"
+          if grep -q "${TOOL}@octolab" <<<"${list}"; then
+            echo "${TOOL}@octolab is still listed after removal" >&2
+            exit 1
+          fi

@@ -38,30 +38,25 @@ jobs:
       - name: Install the agent CLIs
         run: npm install --global "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" "@openai/codex@${CODEX_VERSION}"
 
-      - name: Run tests
-        run: npm test
-      - name: Check generated files
-        run: node scripts/generate.mjs --check
-      - name: Validate the catalog and its tags
-        run: node scripts/validate.mjs --tags
-
-      - name: Validate for Claude Code
-        env:
-          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/claude
-          CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
-        run: node scripts/claude-validate.mjs
-
-      - name: Check discovery by the skills CLI
+      - name: Discover with the skills CLI
         env:
           DISABLE_TELEMETRY: '1'
         run: |
-          out="${RUNNER_TEMP}/skills.json"
           ( cd "$(mktemp -d)" && npx -y "skills@${SKILLS_VERSION}" add "${GITHUB_WORKSPACE}" \
-              --skill '*' -a claude-code --copy -y --json >"${out}" ) || true
-          node scripts/validate.mjs --discovery "${out}"
+              --skill '*' -a claude-code --copy -y --json >"${RUNNER_TEMP}/skills.json" ) || true
+      # generated files, registry, payloads, digests, tags, claude plugin
+      # validate and the discovery result
+      - name: Check the catalog
+        uses: octomation/skills-action@v0.1.1
+        env:
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/claude
+          CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
+        with:
+          command: check
+          discovery: ${{ runner.temp }}/skills.json
 
       # A directory marketplace loads plugins in place: this checks that the
-      # manifests install, not the GitHub path users take (ci.<tool>.yml does).
+      # manifests install, not the GitHub path users take (ci.install.yml does).
       - name: Install with Claude Code
         env:
           CLAUDE_CONFIG_DIR: ${{ runner.temp }}/claude-install
