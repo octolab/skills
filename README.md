@@ -61,9 +61,6 @@ installed copy — both load, and an outdated one can mislead the agent.
 
 Export Telegram dialogs, history and media as JSONL.
 
-> The skill and the `indexit skill` commands arrive with the next indexit
-> release; until then these commands have nothing to install.
-
 ```bash
 claude plugin install indexit@octolab
 ```
