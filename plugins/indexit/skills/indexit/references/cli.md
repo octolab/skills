@@ -101,8 +101,8 @@ Flags:
 Check the installed copies of the skill against this binary.
 
 Looks in the user's and the project's skills of Claude Code and Codex, and
-in Claude Code plugins. Fails when a copy is incompatible with this binary,
-was changed after indexit installed it, or no copy exists for a requested
+in their plugins. Fails when a copy is incompatible with this binary, was
+changed after indexit installed it, or no copy exists for a requested
 --agent; with --exact, also when a copy differs from this release.
 
 ```text

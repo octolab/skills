@@ -8,14 +8,14 @@ description: >-
   indexit, or troubleshoot an indexit command.
 license: MIT
 compatibility: >-
-  Requires the indexit binary >=0.2.2 <0.3.0 on macOS or Linux. Telegram
+  Requires the indexit binary >=0.2.3 <0.3.0 on macOS or Linux. Telegram
   commands need network access, the user's Telegram API credentials and an
   authorized user session.
 metadata:
   author: octopot
-  version: "0.2.2"
+  version: "0.2.3"
   tool: indexit
-  tool-version-range: ">=0.2.2 <0.3.0"
+  tool-version-range: ">=0.2.3 <0.3.0"
 ---
 
 # indexit
@@ -26,7 +26,7 @@ index or search by itself. Pipe its output into jq, fx or fzf.
 
 ## 1. Check the binary first
 
-This skill describes indexit `>=0.2.2 <0.3.0`. Before anything else:
+This skill describes indexit `>=0.2.3 <0.3.0`. Before anything else:
 
 1. Run `indexit version`.
 2. Compare the version with that range.

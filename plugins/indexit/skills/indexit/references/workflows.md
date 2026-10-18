@@ -1,6 +1,6 @@
 # Workflows
 
-Recipes for indexit `>=0.2.2 <0.3.0`. Substitute the user's real addresses;
+Recipes for indexit `>=0.2.3 <0.3.0`. Substitute the user's real addresses;
 `@example_channel`, `@example_forum` and the numbers below are placeholders.
 
 ## Set up and sign in
@@ -186,5 +186,5 @@ indexit skill status
 `~/.agents/skills/indexit` for Codex, or the same under the current directory
 with `--project`, and leaves directories of other installers alone. After
 upgrading indexit, run it again with `--replace`. `status` lists every copy the
-agents load, flags incompatible, changed and duplicate ones, and exits `1` on a
-problem. `indexit skill export -o <dir>` writes the skill anywhere else.
+agents load, plugin copies of both agents included, flags incompatible, changed
+and duplicate ones, and exits `1` on a problem. `indexit skill export -o <dir>` writes the skill anywhere else.
