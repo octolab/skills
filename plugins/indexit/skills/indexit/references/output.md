@@ -9,7 +9,7 @@ Logs, warnings and progress go to stderr.
 | --- | --- | --- |
 | `dialog` | `uid`, `peer_type`, `peer_id` | title, username, forum status, unread count, account status, flags |
 | `topic` | `dialog_uid`, `topic_id` | title, creation date, top message, counters, flags |
-| `peer` | `ref`, `uid` | `peer_type`, title, usernames, `about`, `participants_count`, linked chat, account status, flags, `invite`, or `error` |
+| `peer` | `ref`, `uid` | `peer_type`, title, usernames, `about`, `participants_count`, linked chat, account status, flags, user and bot details (below), `invite`, or `error` |
 | `message` | `dialog_uid`, `id` | `date`, `text`, optional sender (`from`), topic, media description, replies, forwards |
 | `media` | `dialog_uid`, `message_id`, `path` | `type`, date, size, `grouped_id` for albums, `skipped`, or `error` |
 
@@ -57,6 +57,25 @@ are added. Names and member counts do not establish ownership or admin status.
 These fields cannot identify chats owned by another person when the signed-in
 account is an ordinary member.
 
+## User and bot cards
+
+A `peer` record for a user or a bot (`peer_type` `user` or `bot`) is a full
+card, not an error. Besides identity, `about` (the bio) and the flags
+(`verified`, `premium`, `scam`, `fake`, `support`, `deleted`), it can carry:
+
+| Field | Meaning |
+| --- | --- |
+| `first_name`, `last_name`, `phone`, `lang_code` | names, phone number and the user's language code, as Telegram returns them; `lang_code` mostly for the signed-in account |
+| `personal_channel_uid`, `personal_channel` | the channel shown on the profile, `{uid, title, username}` like `linked_chat`; the UID can come alone |
+| `birthday` | `YYYY-MM-DD`, or `--MM-DD` without a year |
+| `business` | `location` (`address`, `latitude`, `longitude`), `work_hours` (`timezone_id`, `weekly_open[]` of `start_minute`/`end_minute` from Monday 00:00), `intro` (`title`, `description`) |
+| `bot` | `description`, `commands[]` (`command`, `description`), `privacy_policy_url`, `active_users` (absent when not reported), `inline_placeholder`; `can_join_groups`, `can_read_all_group_messages`, `has_main_app` keep known `false` |
+| `stars_rating`, `send_paid_messages_stars` | Stars rating `{level, stars}`; Stars price of a message to the user: `0` = paid messages on but the account is exempt, absent = free |
+
+What privacy settings hide is absent, without an error. A cached `user:<id>`
+reports `bot` from the full response; if that request fails, the record keeps
+the cached identity with `peer_type` `user` and `error.code` `rpc`.
+
 ## Peer errors
 
 `fetch peer` reports a failed ref in its record's `error.code`:
@@ -65,11 +84,10 @@ account is an ordinary member.
 | --- | --- |
 | `bad_ref` | not a Telegram address |
 | `not_found` | the username is free or invalid |
-| `cold_peer` | numeric ID not in the peer cache; run `fetch dialogs` or pass a username |
+| `cold_peer` | numeric ID not in the peer cache, or a user known only from a passing mention; such a user keeps its `uid`, `title`, `username`, a never-seen ID has none; after an account switch the cache starts empty; run `fetch dialogs` or pass a username |
 | `invite_not_member` | invite to a chat the account isn't in; only a preview without an ID |
 | `invite_expired` | invite expired or revoked |
-| `not_channel` | a user or bot; identity fields are still filled |
-| `rpc` | any other Telegram error, e.g. a private channel |
+| `rpc` | any other Telegram error, e.g. a private channel or a stale cached user; known identity is kept |
 
 ## Completeness
 

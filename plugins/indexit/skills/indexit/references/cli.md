@@ -285,8 +285,10 @@ Fetch the cards of Telegram channels, groups, and users as JSONL.
 Emits one peer record per ref, in the order of the refs. A ref is any
 dialog address, a t.me/c/<id> link, or a t.me/+<hash> or t.me/joinchat/<hash>
 invite link. Channels and groups are read in full: description, members,
-and the linked discussion group or channel. Invite links are only
-previewed: indexit never joins a chat.
+and the linked discussion group or channel. Users and bots are read in
+full too: bio, personal channel, birthday, business card, and a bot's
+description and commands. Invite links are only previewed: indexit
+never joins a chat.
 
 Channel and group cards include is_member, is_admin (owners included),
 and is_creator for the current account when known. Unknown status is
@@ -304,6 +306,7 @@ Examples:
 
 ```sh
 indexit telegram fetch peer @example_channel https://t.me/example_chat
+indexit telegram fetch peer @example_person @example_bot
 indexit telegram fetch peer channel:<id> https://t.me/+<hash>
 ```
 

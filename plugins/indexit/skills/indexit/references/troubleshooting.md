@@ -13,6 +13,11 @@ Run `indexit telegram fetch dialogs` with the same account, session and
 `t.me/name` addresses resolve without the cache; numeric IDs and `t.me/c/`
 links don't. A cache entry doesn't grant access the account lacks.
 
+After a switch to another account, or with a cache from an earlier version,
+the cache starts empty once, with a warning that names `fetch dialogs`. If the
+warning says indexit cannot tell the account, the command ran without the
+cache: check `auth status`.
+
 ## The whole group came back instead of one topic
 
 The link had one number, so it named a message. Use a link with the topic and

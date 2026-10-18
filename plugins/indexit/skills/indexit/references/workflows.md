@@ -1,6 +1,6 @@
 # Workflows
 
-Recipes for indexit `>=0.2.1 <0.3.0`. Substitute the user's real addresses;
+Recipes for indexit `>=0.2.2 <0.3.0`. Substitute the user's real addresses;
 `@example_channel`, `@example_forum` and the numbers below are placeholders.
 
 ## Set up and sign in
@@ -127,7 +127,9 @@ indexit -q telegram fetch peer @example_channel https://t.me/+<hash> channel:<id
 
 One `peer` record per ref, in order. A username or invite placed before the
 numeric ID of the same channel warms the peer cache for it. Users and bots get
-identity fields plus `error.code` `not_channel`.
+full cards too: bio, personal channel, birthday, business details, and for a
+bot its description and commands. Filter by `peer_type` to keep only channels
+and groups.
 
 ## Filter and save
 
@@ -150,6 +152,11 @@ indexit telegram --session ./work/session.json \
 ```
 
 Keep each session and peer cache pair together on every run of that account.
+The cache records the account it belongs to: under another account, or when it
+records none (caches from earlier versions), a command starts it empty with a
+stderr warning (hidden by `-q`), and `fetch dialogs` refills it. Two accounts
+sharing one cache file empty it on every switch. `auth status` shows the
+cache's account.
 
 ## Proxy
 
