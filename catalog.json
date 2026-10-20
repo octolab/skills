@@ -15,6 +15,14 @@
       "homepage": "https://indexit.octolab.org/",
       "license": "MIT",
       "keywords": ["telegram", "export", "jsonl", "cli"]
+    },
+    "maintainer": {
+      "repository": "octomation/maintainer",
+      "skill": "skills/maintainer",
+      "description": "Teach your coding agent to keep a workspace of GitHub checkouts in step with the maintainer CLI",
+      "homepage": "https://maintainer.octolab.org/",
+      "license": "MIT",
+      "keywords": ["github", "git", "checkouts", "workspace", "cli"]
     }
   }
 }

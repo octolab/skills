@@ -80,5 +80,29 @@ indexit skill status
 
 [indexit]: https://indexit.octolab.org/
 
+### 👨‍🔧 [maintainer][]
+
+Keep a workspace of GitHub checkouts in step: plan and apply clones, refreshes
+and moves, and see local work across checkouts.
+
+```bash
+claude plugin install maintainer@octolab
+```
+
+```bash
+codex plugin add maintainer@octolab
+```
+
+```bash
+npx skills add octolab/skills --skill maintainer
+```
+
+```bash
+maintainer skill install --agent claude-code
+maintainer skill status
+```
+
+[maintainer]: https://maintainer.octolab.org/
+
 
 <p align="right">made with ❤️ for everyone by <a href="https://www.octolab.org/">OctoLab</a></p>
