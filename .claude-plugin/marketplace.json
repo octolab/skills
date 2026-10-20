@@ -10,6 +10,11 @@
       "name": "indexit",
       "description": "Teach your coding agent to export Telegram data with the indexit CLI",
       "source": "./plugins/indexit"
+    },
+    {
+      "name": "maintainer",
+      "description": "Teach your coding agent to keep a workspace of GitHub checkouts in step with the maintainer CLI",
+      "source": "./plugins/maintainer"
     }
   ]
 }

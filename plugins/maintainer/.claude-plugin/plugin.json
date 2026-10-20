@@ -1,0 +1,19 @@
+{
+  "name": "maintainer",
+  "version": "0.2.1",
+  "description": "Teach your coding agent to keep a workspace of GitHub checkouts in step with the maintainer CLI",
+  "author": {
+    "name": "OctoLab",
+    "url": "https://www.octolab.org/"
+  },
+  "homepage": "https://maintainer.octolab.org/",
+  "repository": "https://github.com/octomation/maintainer",
+  "license": "MIT",
+  "keywords": [
+    "github",
+    "git",
+    "checkouts",
+    "workspace",
+    "cli"
+  ]
+}
