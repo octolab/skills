@@ -18,6 +18,31 @@ Global flags, accepted by every command in any position:
 - `-q, --quiet`: suppress everything below error level (stdout payload unaffected)
 - `-v, --verbose count`: increase log verbosity (-v debug, -vvv enables gotd internals)
 
+## indexit service
+
+Manage the local photograph service
+
+```text
+indexit service [command]
+```
+
+## indexit service run
+
+Serves saved and on-demand Telegram photographs over HTTP on loopback.
+It runs as your user and listens on 127.0.0.1 and ::1 at port 17840; a default
+address the system lacks, as ::1 with IPv6 turned off, is skipped.
+--listen replaces the defaults and may repeat. Photograph URLs use origin
+under [service] in config.toml, http://indexit.localhost:17840 by default.
+
+```text
+indexit service run [flags]
+```
+
+Flags:
+
+- `--listen stringArray`: loopback address to listen on, repeatable; replaces the defaults (default [127.0.0.1:17840,[::1]:17840])
+- `--session string`: path to Telegram session file
+
 ## indexit skill
 
 Show or install the agent skill for this release.
@@ -245,6 +270,9 @@ order within each group and duplicates in that group are fetched once.
 Missing, service, and out-of-scope messages are skipped with a warning.
 --limit caps emitted records across all groups. Requests use at most 100 IDs;
 --page-size does not apply to this command.
+
+Photo media includes a stable local preview_url; album.photos lists its photographs.
+Check album.complete and album.error before treating an album as complete.
 
 ```text
 indexit telegram fetch message [<t.me link> ...] [flags]

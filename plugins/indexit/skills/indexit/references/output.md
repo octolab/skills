@@ -115,3 +115,16 @@ Partial results with `0`:
   `jq -c 'select(.error)'`.
 - `fetch peer`: exits `0` if at least one record has no `error`; `1` if every
   ref failed; `2` if every ref was malformed.
+
+## Local photo previews
+
+Photo `media` adds `preview_url` or `preview_error`. The URL identifies the account,
+dialog, message and exact Photo.ID; preserve its string verbatim. It is local to
+the user's machine, not a public share URL. The service downloads the largest
+Telegram JPEG unchanged on first GET and then serves its persistent disk copy.
+
+Photo albums additionally include `media.album` with `photos` (each has
+`message_id` and `url`), explicit `complete`, and optional `error`. Exact-message
+fetching from any album item looks up its accessible neighbors. A failure or an
+unproven window boundary is reported; do not silently materialize a partial album.
+Existing fields and the selected message's caption remain intact.

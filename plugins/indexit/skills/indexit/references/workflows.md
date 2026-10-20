@@ -1,6 +1,6 @@
 # Workflows
 
-Recipes for indexit `>=0.2.3 <0.3.0`. Substitute the user's real addresses;
+Recipes for indexit `>=0.3.0 <0.4.0`. Substitute the user's real addresses;
 `@example_channel`, `@example_forum` and the numbers below are placeholders.
 
 ## Set up and sign in
@@ -88,6 +88,34 @@ indexit -q telegram fetch message --dialog @example_channel --id 11 --id 46,47
 
 Missing, service and inaccessible messages are skipped with a warning; run
 without `-q` to see which.
+
+## Turn a post into a note with its photographs
+
+A note can embed a post's photographs without hosting them anywhere: indexit's
+local service serves them from this Mac, and a photograph it has saved keeps
+displaying after the post, the channel or the Telegram session is gone.
+
+```sh
+curl -fsS http://indexit.localhost:17840/ >/dev/null
+indexit -q telegram fetch message https://t.me/example_channel/11 -o post.jsonl
+jq -r 'select(._kind == "message") | .text' post.jsonl
+jq -r '.media | select(.) | .album.photos[]?.url // .preview_url // empty' post.jsonl
+```
+
+1. Check that the service answers. If it doesn't, ask the user to start it:
+   `brew services start octolab/tap/indexit` on macOS, or `indexit service run`.
+   With `origin` under `[service]` in `config.toml`, the URLs and this check use
+   that origin instead.
+2. Fetch the post by its link and write the note: the text, then one
+   Markdown image per photograph, in album order, with its URL copied verbatim
+   as the source.
+3. Request every URL once, now: `curl -fsS -o /dev/null "<url>"`. The service
+   downloads the photograph on its first request and keeps the copy; a
+   photograph nobody requested is lost with the post. A cold request can wait
+   up to two minutes for a running indexit command; retry a failure.
+4. Report what is missing: `preview_error` instead of a URL, an album with
+   `complete: false` or an `error`. Don't present a partial album as the whole
+   post. Videos, GIFs and documents get no URL; link to the post for them.
 
 ## Work with a forum topic
 

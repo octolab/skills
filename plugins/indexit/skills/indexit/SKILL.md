@@ -3,19 +3,22 @@ name: indexit
 description: >-
   Export and inspect Telegram data with the indexit CLI: list dialogs and forum
   topics, describe channels, groups and invite links, export message history or
-  exact linked messages as JSONL, and download media. Use when the user wants
+  exact linked messages as JSONL, and download media. Turn a Telegram post
+  into a Markdown note whose photographs indexit's local service hosts on this
+  Mac, so they keep displaying after the post is gone. Use when the user wants
   to read, search, archive or export Telegram chats, channels or topics with
-  indexit, or troubleshoot an indexit command.
+  indexit, save or materialize a post as a note with its photos, or
+  troubleshoot an indexit command.
 license: MIT
 compatibility: >-
-  Requires the indexit binary >=0.2.3 <0.3.0 on macOS or Linux. Telegram
+  Requires the indexit binary >=0.3.0 <0.4.0 on macOS or Linux. Telegram
   commands need network access, the user's Telegram API credentials and an
   authorized user session.
 metadata:
   author: octopot
-  version: "0.2.3"
+  version: "0.3.0"
   tool: indexit
-  tool-version-range: ">=0.2.3 <0.3.0"
+  tool-version-range: ">=0.3.0 <0.4.0"
 ---
 
 # indexit
@@ -26,7 +29,7 @@ index or search by itself. Pipe its output into jq, fx or fzf.
 
 ## 1. Check the binary first
 
-This skill describes indexit `>=0.2.3 <0.3.0`. Before anything else:
+This skill describes indexit `>=0.3.0 <0.4.0`. Before anything else:
 
 1. Run `indexit version`.
 2. Compare the version with that range.
@@ -34,7 +37,7 @@ This skill describes indexit `>=0.2.3 <0.3.0`. Before anything else:
      command's flags.
    - Older or newer: don't rely on the recipes here. Read the skill that ships
      with the binary, `indexit skill show`, and tell the user the versions
-     differ; suggest upgrading indexit (`brew upgrade --cask octolab/tap/indexit`)
+     differ; suggest upgrading indexit (`brew upgrade --formula octolab/tap/indexit`)
      or reinstalling the skill from the binary
      (`indexit skill install --agent claude-code --replace`, or `codex`).
    - `dev` or unknown: treat compatibility as unknown and rely on `--help`.
@@ -81,6 +84,7 @@ work at any position; the examples put them first, e.g.
 | History of a chat or topic | `fetch messages --dialog <address>` |
 | History for a period | `fetch messages` with `--from` / `--to` (RFC3339) |
 | Exact messages from links or IDs | `fetch message <link>...` or `--dialog <address> --id 11,46` |
+| A post as a note with its photographs | `fetch message <link>`, then embed `media.preview_url` (see [the recipe](references/workflows.md#turn-a-post-into-a-note-with-its-photographs)) |
 | Photos, videos, files | `fetch media --dialog <address> --dir <dir>` |
 | Check a dialog address offline | `debug uid <value>` |
 | Sign in, check or end the session | `auth login [--qr]`, `auth status`, `auth logout` |
@@ -110,6 +114,12 @@ Every command and flag of this release:
 
 ## 4. Read the results
 
+- Ordinary photo messages include `media.preview_url` by default, pointing to
+  the local `http://indexit.localhost:17840/` service. For albums inspect
+  `media.album.photos`, `complete` and `error`; keep every photograph URL.
+  URLs need the local service to display but are generated without it. The
+  service saves a photograph on its first request; from then on it shows
+  without Telegram, even after the source disappears.
 - Records carry `_kind`: `dialog`, `topic`, `peer`, `message`, `media`.
   Fields: [references/output.md](references/output.md).
 - `-q` hides progress **and warnings**. Omit it when you need to know why
@@ -131,3 +141,19 @@ malformed proxy); `1` is a runtime failure. Common causes and fixes:
 
 Report what you ran, what came back, and anything skipped or failed. Don't
 claim an export succeeded without checking its records.
+
+## Local photograph service
+
+Notes can show Telegram photographs without uploading them anywhere: the
+service hosts them on this Mac, under URLs that stay the same. A post saved as
+a note keeps its pictures after the post, the channel or the session is gone.
+
+`indexit service run` starts the image server on `127.0.0.1:17840` and
+`[::1]:17840`; a repeated `--listen` replaces them. Permanent URLs are
+`http://indexit.localhost:17840/`, which resolves to loopback without system
+setup, unless `origin` under `[service]` in `~/.config/indexit/config.toml`
+sets another; on macOS the `octolab/tap/indexit` Homebrew Formula supplies
+`brew services` integration. Never run the image process as root.
+The service uses the CLI's configuration and authorization. Saved photographs
+live in `~/.local/share/indexit` (or `INDEXIT_DATA_DIR`) and are never evicted
+automatically; uninstall preserves them. Do not delete them as routine cleanup.
