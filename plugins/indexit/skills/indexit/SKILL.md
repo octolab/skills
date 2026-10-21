@@ -11,14 +11,14 @@ description: >-
   troubleshoot an indexit command.
 license: MIT
 compatibility: >-
-  Requires the indexit binary >=0.3.0 <0.4.0 on macOS or Linux. Telegram
+  Requires the indexit binary >=0.3.1 <0.4.0 on macOS or Linux. Telegram
   commands need network access, the user's Telegram API credentials and an
   authorized user session.
 metadata:
   author: octopot
-  version: "0.3.0"
+  version: "0.3.1"
   tool: indexit
-  tool-version-range: ">=0.3.0 <0.4.0"
+  tool-version-range: ">=0.3.1 <0.4.0"
 ---
 
 # indexit
@@ -29,7 +29,7 @@ index or search by itself. Pipe its output into jq, fx or fzf.
 
 ## 1. Check the binary first
 
-This skill describes indexit `>=0.3.0 <0.4.0`. Before anything else:
+This skill describes indexit `>=0.3.1 <0.4.0`. Before anything else:
 
 1. Run `indexit version`.
 2. Compare the version with that range.
@@ -157,3 +157,8 @@ sets another; on macOS the `octolab/tap/indexit` Homebrew Formula supplies
 The service uses the CLI's configuration and authorization. Saved photographs
 live in `~/.local/share/indexit` (or `INDEXIT_DATA_DIR`) and are never evicted
 automatically; uninstall preserves them. Do not delete them as routine cleanup.
+The service writes a commented `config.toml` when there is none.
+`http://indexit.localhost:17840/` is a dashboard of the saved photographs.
+`curl -fsS http://indexit.localhost:17840/api/v1/unsaved` lists the URLs of
+registered photographs without a local copy, and `/api/v1/stats` the numbers as
+JSON.
