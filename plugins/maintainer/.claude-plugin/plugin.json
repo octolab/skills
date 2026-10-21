@@ -1,6 +1,6 @@
 {
   "name": "maintainer",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Teach your coding agent to keep a workspace of GitHub checkouts in step with the maintainer CLI",
   "author": {
     "name": "OctoLab",

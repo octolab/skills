@@ -4,21 +4,23 @@ description: >-
   Manage a workspace of local GitHub checkouts with the maintainer CLI: plan
   and apply fetch (clone, refresh, move, adopt), check fetch.toml against its
   schema, read the state and pins, and see branches, uncommitted work,
-  divergence and push locks across checkouts with status. Also plans
-  contributions with the GitHub contribution calendar. Use when the user wants
-  to clone or refresh their repositories, find local work across checkouts, or
-  troubleshoot a maintainer command. Not for mirroring GitHub issues into
+  divergence and push locks across checkouts with status. Also runs the local
+  hub, maintainer service, that shows the checkouts and the issues they mirror
+  in one place in the browser, and plans contributions with the GitHub
+  contribution calendar. Use when the user wants to clone or refresh their
+  repositories, find local work across checkouts, run or configure the local
+  hub, or troubleshoot a maintainer command. Not for mirroring GitHub issues into
   .github/.
 license: MIT
 compatibility: >-
-  Requires the maintainer binary >=0.2.1 <0.3.0 on macOS or Linux and Git on
+  Requires the maintainer binary >=0.3.0 <0.4.0 on macOS or Linux and Git on
   PATH. fetch and the contribution commands need network access and a GitHub
   token; status works offline.
 metadata:
   author: octomation
-  version: "0.2.1"
+  version: "0.3.0"
   tool: maintainer
-  tool-version-range: ">=0.2.1 <0.3.0"
+  tool-version-range: ">=0.3.0 <0.4.0"
 ---
 
 # maintainer
@@ -28,11 +30,13 @@ step with GitHub. `maintainer fetch` discovers the user's repositories and
 plans what to clone, refresh, move or adopt, like `terraform plan`; `--apply`
 carries the plan out without touching branches or working files.
 `maintainer status` shows, offline, where local work needs attention. Both read
-one config, `fetch.toml`, and one state file.
+one config, `fetch.toml`, and one state file. `maintainer service run` brings
+the checkouts and the issues they mirror from GitHub into one local hub in the
+browser.
 
 ## 1. Check the binary first
 
-This skill describes maintainer `>=0.2.1 <0.3.0`. Before anything else:
+This skill describes maintainer `>=0.3.0 <0.4.0`. Before anything else:
 
 1. Run `maintainer version` and read the `version` line.
 2. Compare it with that range.
@@ -41,10 +45,10 @@ This skill describes maintainer `>=0.2.1 <0.3.0`. Before anything else:
    - Older or newer: don't rely on the recipes here. Read the skill that ships
      with the binary, `maintainer skill show`, and tell the user the versions
      differ; suggest upgrading maintainer
-     (`brew upgrade --formula octolab/tap/maintainer`, or `--cask`, whichever
-     they installed) or reinstalling the skill from the binary
+     (`brew upgrade --formula octolab/tap/maintainer`) or reinstalling the
+     skill from the binary
      (`maintainer skill install --agent claude-code --replace`, or `codex`).
-   - `dev`, a pseudo-version such as `v0.2.1-0.20261020…`, or unknown: treat
+   - `dev`, a pseudo-version such as `v0.3.0-0.20261021…`, or unknown: treat
      compatibility as unknown and rely on `--help`.
    - `maintainer skill` missing: the binary predates it; rely on `--help` only.
    - `maintainer` not found: explain how to install it
@@ -95,6 +99,7 @@ This skill describes maintainer `>=0.2.1 <0.3.0`. Before anything else:
 | A time to contribute | `github contribution suggest`; also `contribution lookup`, `contribution histogram`, `contribution snapshot`, `contribution diff` |
 | Go vanity import pages | `go vanity build` |
 | Combined Makefiles | `makefile build` |
+| maintainer in a browser on this computer | `service run`, or `brew services start octolab/tap/maintainer` |
 
 `fetch` flags such as `--config`, `--owner`, `--format` and `--timeout` work
 for its subcommands too. Recipes:
@@ -152,7 +157,51 @@ this release: [references/cli.md](references/cli.md).
 
 Fields and examples: [references/output.md](references/output.md).
 
-## 6. When something fails
+## 6. The local service
+
+`maintainer service run` serves maintainer over HTTP at
+`http://maintainer.localhost:17841/`: `/status` is the status table in the
+browser, `/inbox` lists every issue the checkouts mirror in `.github/issues`
+with a reading pane, filters and a score, `/tablo` shows them on one board
+(Backlog, To do, In progress, Done, Won't do); `/` redirects to `/status`.
+It reads the fetch config and state as `status` does, from the home
+directory, and `service.toml` in `$XDG_CONFIG_HOME/maintainer` or
+`~/.config/maintainer` for the addresses (`listen`) and the score weights; on
+the first start it writes that file with every key commented out, so read it
+to learn where the service listens (`--config` names another file, which must
+exist). It needs no token or network.
+
+- **It writes issue files.** Setting `impact: *` or `effort: *` on a page
+  changes those label lines in the issue file of the checkout and nothing
+  else. Don't run `dump`, `sync` or push the mirror, and don't edit the issue
+  files, while the user triages in the browser; after you changed issue files,
+  **Reindex** in the navigation bar rebuilds the index.
+
+- **Homebrew runs it.** On macOS the Formula carries the service:
+  `brew services start octolab/tap/maintainer`, `restart` after an upgrade,
+  `stop` to end it; it logs to `$(brew --prefix)/var/log/maintainer.log`.
+  Installing the Formula doesn't start it; start or stop it only with the
+  user's go-ahead.
+- **As the user, never as root.** Don't use `sudo maintainer` or
+  `sudo brew services`; nothing here needs an administrator.
+- **Loopback only.** By default it listens on `127.0.0.1:17841` and
+  `[::1]:17841`, as `maintainer.localhost` resolves to both; without an IPv6
+  loopback it skips `::1` and keeps running.
+- **`--listen` replaces both** and may repeat. Each value is a literal
+  loopback IP address with a port; `localhost`, `0.0.0.0` or another address
+  exits `2`, and an address it cannot bind, such as a taken port, stops it
+  with an error:
+
+  ```sh
+  maintainer service run --listen 127.0.0.1:8080 --listen '[::1]:8080'
+  ```
+
+- **Check it** with
+  `curl -fsS http://maintainer.localhost:17841/status -o /dev/null -w '%{http_code}\n'`,
+  which prints `200`. Run in a terminal, `Ctrl-C` stops it once the
+  responses in flight are sent.
+
+## 7. When something fails
 
 - `unknown key …; did you mean …?`: fix the key in the named file, then run
   `maintainer fetch config validate`.
