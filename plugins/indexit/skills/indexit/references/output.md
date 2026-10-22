@@ -21,7 +21,9 @@ Logs, warnings and progress go to stderr.
 - IDs can need 64-bit precision, `grouped_id` especially; use a reader that
   keeps integers exact.
 - `fetch messages` only describes attachments; `fetch media` downloads them.
-  Album frames share `grouped_id`; order them by numeric `message_id`.
+  Album frames share `grouped_id`; order them by numeric `id` in `message`
+  records and by `message_id` in `media` records. `fetch message` with a link
+  to one of them emits them all, in that order.
 - `uid` values (`channel:<id>`, `chat:<id>`, `user:<id>`) are valid
   `--dialog` addresses.
 
@@ -91,8 +93,8 @@ the cached identity with `peer_type` `user` and `error.code` `rpc`.
 
 ## Completeness
 
-- Each message ID is emitted once per run, also across overlapping pages and
-  topics. Repeated IDs don't consume `--limit`. Across runs nothing is
+- Each message ID is emitted once per run, also across overlapping pages,
+  topics and links into one album. Repeated IDs don't consume `--limit`. Across runs nothing is
   deduplicated, and `-o` appends.
 - `--limit` counts emitted records. For media, skipped and failed files count
   too.
@@ -109,8 +111,8 @@ the cached identity with `peer_type` `user` and `error.code` `rpc`.
 
 Partial results with `0`:
 
-- `fetch message`: skipped messages appear only as warnings on stderr (hidden
-  by `-q`).
+- `fetch message`: skipped messages and album members appear only as
+  warnings on stderr (hidden by `-q`).
 - `fetch media`: failed files are `error` records; find them with
   `jq -c 'select(.error)'`.
 - `fetch peer`: exits `0` if at least one record has no `error`; `1` if every
@@ -118,13 +120,15 @@ Partial results with `0`:
 
 ## Local photo previews
 
-Photo `media` adds `preview_url` or `preview_error`. The URL identifies the account,
-dialog, message and exact Photo.ID; preserve its string verbatim. It is local to
-the user's machine, not a public share URL. The service downloads the largest
-Telegram JPEG unchanged on first GET and then serves its persistent disk copy.
+Photo `media` of a channel or supergroup post adds `preview_url`, or
+`preview_error` for a photograph that cannot be kept. The URL,
+`/preview/telegram/v1/c<channel>/<message>/p<photo>.jpg`, names the channel, the
+post and the exact Photo.ID and nothing about the account; preserve its string
+verbatim. Generating it writes nothing. Photographs of private chats and basic
+groups get neither field. The URL is local to the user's machine, not a public
+share URL. The service downloads the largest Telegram JPEG unchanged on first
+GET and then serves its persistent disk copy; `404` means the account cannot
+find the channel, `410` that the post or the photograph is gone or replaced.
 
-Photo albums additionally include `media.album` with `photos` (each has
-`message_id` and `url`), explicit `complete`, and optional `error`. Exact-message
-fetching from any album item looks up its accessible neighbors. A failure or an
-unproven window boundary is reported; do not silently materialize a partial album.
-Existing fields and the selected message's caption remain intact.
+An album is one record per message; each photograph's URL is in its own
+record. Collect them by `grouped_id` in the order of `id`.
