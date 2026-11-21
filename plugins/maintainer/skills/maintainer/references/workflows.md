@@ -136,19 +136,6 @@ UTC timestamp to stdout and exits `4` when no moment fits up to now; it never
 creates a commit. A `warn:` line names the months whose reviews may be a day
 off because GitHub gives no date for some of their contributions.
 
-## Project helpers
-
-```sh
-maintainer go vanity --host go.example.org --file modules.yml build ./site
-maintainer makefile build release.mk
-```
-
-`go vanity build` writes static `index.html` import pages for the modules in
-`modules.yml` into the directory given, or the current one; it doesn't deploy
-them. `makefile build` expands the `include` lines of each Makefile into
-`dist/<name>/Makefile`. Both write files: tell the user where before running
-them in their repository.
-
 ## Install and update this skill
 
 The binary carries the skill for its own version:
