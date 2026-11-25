@@ -13,14 +13,14 @@ description: >-
   .github/.
 license: MIT
 compatibility: >-
-  Requires the maintainer binary >=0.5.0 <0.6.0 on macOS or Linux and Git on
+  Requires the maintainer binary >=0.5.1 <0.6.0 on macOS or Linux and Git on
   PATH. fetch and the contribution commands need network access and a GitHub
   token; status works offline.
 metadata:
   author: octomation
-  version: "0.5.0"
+  version: "0.5.1"
   tool: maintainer
-  tool-version-range: ">=0.5.0 <0.6.0"
+  tool-version-range: ">=0.5.1 <0.6.0"
 ---
 
 # maintainer
@@ -36,7 +36,7 @@ browser.
 
 ## 1. Check the binary first
 
-This skill describes maintainer `>=0.5.0 <0.6.0`. Before anything else:
+This skill describes maintainer `>=0.5.1 <0.6.0`. Before anything else:
 
 1. Run `maintainer version` and read the `version` line.
 2. Compare it with that range.
@@ -48,7 +48,7 @@ This skill describes maintainer `>=0.5.0 <0.6.0`. Before anything else:
      (`brew upgrade --formula octolab/tap/maintainer`) or reinstalling the
      skill from the binary
      (`maintainer skill install --agent claude-code --replace`, or `codex`).
-   - `dev`, a pseudo-version such as `v0.5.0-0.20261107…`, or unknown: treat
+   - `dev`, a pseudo-version such as `v0.5.1-0.20261107…`, or unknown: treat
      compatibility as unknown and rely on `--help`.
    - `maintainer skill` missing: the binary predates it; rely on `--help` only.
    - `maintainer` not found: explain how to install it
@@ -65,8 +65,8 @@ This skill describes maintainer `>=0.5.0 <0.6.0`. Before anything else:
   when they agree. Each `--apply` builds a fresh plan; it never replays a
   plan printed earlier.
 - **Tokens stay secret.** Never print `GITHUB_TOKEN`, a `token_file` or an
-  inline `token`, and don't put a token on the command line with `--token`:
-  it stays in shell history. Ask the user to export the variable or set
+  inline `token`, and never put a token on the command line: `--token` is
+  removed and exits `2`. Ask the user to export the variable or set
   `token_file` themselves.
 - **Leave the checkouts to Git and the user.** maintainer never pushes,
   merges, resets or deletes, and neither should you on its behalf: don't
@@ -87,7 +87,7 @@ This skill describes maintainer `>=0.5.0 <0.6.0`. Before anything else:
 
 | The user wants | Command |
 | --- | --- |
-| A first config | `fetch config init` (writes `./fetch.toml`; `--force` overwrites) |
+| A first config | `fetch config init` (writes `~/.config/maintainer/fetch.toml`; `--force` overwrites) |
 | To check a config | `fetch config validate`, or `cue vet -c fetch.cue fetch.toml` against the schema |
 | To see what fetch would do | `fetch`, or `fetch --format=json` |
 | To clone missing and refresh existing checkouts | `fetch --apply`, after reviewing the plan |
@@ -97,7 +97,7 @@ This skill describes maintainer `>=0.5.0 <0.6.0`. Before anything else:
 | What fetch remembers | `fetch state show` |
 | To forget checkouts whose directory is gone | `fetch state prune` (writes the state at once) |
 | A time to contribute | `github contribution suggest`; also `contribution lookup`, `contribution histogram`, `contribution snapshot`, `contribution diff` |
-| maintainer in a browser on this computer | `service run`, or `brew services start octolab/tap/maintainer` |
+| maintainer in a browser on this computer | `service run`, or `brew services start octolab/tap/maintainer`, then `service open` |
 
 `fetch` flags such as `--config`, `--owner`, `--format` and `--timeout` work
 for its subcommands too. Recipes:
@@ -107,10 +107,13 @@ this release: [references/cli.md](references/cli.md).
 ## 4. Configuration, state and tokens
 
 - **Lookup**, first match wins: `--config <path>` (`--config=""` disables
-  discovery), the file named by `$MAINTAINER_FETCH_CONFIG`, `./fetch.toml`,
-  `./fetch.yaml`, then `$XDG_CONFIG_HOME/maintainer/fetch.toml` or `.yaml`
-  (usually `~/.config/maintainer/`). Without a config, `fetch` needs an
-  `--owner` and works under the current directory.
+  discovery), the file named by `$MAINTAINER_FETCH_CONFIG`, then
+  `$XDG_CONFIG_HOME/maintainer/fetch.toml` or `.yaml` (usually
+  `~/.config/maintainer/`). A `fetch.toml` in the working directory is never
+  read: fetch and status print a notice, or exit `2` when there is no other
+  config; pass it with `--config` only if the user says it is theirs. Without
+  a config, `fetch --config=""` needs an `--owner` and works under the current
+  directory.
 - **The schema is the contract.** The keys are `[workspace]` (`root`, `path`,
   `pins`), `[defaults]` (`clone_url`, `concurrency`, `state_file`),
   `[filters]`, `[profiles.<name>]`, `[[owners]]` and `[[repos]]`; the schema
@@ -175,6 +178,16 @@ exist). It needs no token or network.
   files, while the user triages in the browser; after you changed issue files,
   **Reindex** in the navigation bar rebuilds the index.
 
+- **Open it with `maintainer service open`.** Each start serves the data
+  only at a new private address, `http://<label>.maintainer.localhost:<port>/`;
+  the command checks the running service and opens that address in the
+  browser, `--print` prints it instead. Run it after every start. The plain
+  `http://maintainer.localhost:17841/` loads the pages without data and every
+  `/api/` request there but `hello` gets `401`. The label is a key: don't
+  print it into shared text, logs or files. With `access = "open"` in
+  `service.toml` the plain address serves the data too: suggest it only to a
+  user who is the only account of the computer.
+
 - **Homebrew runs it.** On macOS the Formula carries the service:
   `brew services start octolab/tap/maintainer`, `restart` after an upgrade,
   `stop` to end it; it logs to `$(brew --prefix)/var/log/maintainer.log`.
@@ -185,10 +198,11 @@ exist). It needs no token or network.
 - **Loopback only.** By default it listens on `127.0.0.1:17841` and
   `[::1]:17841`, as `maintainer.localhost` resolves to both; without an IPv6
   loopback it skips `::1` and keeps running.
-- **`--listen` replaces both** and may repeat. Each value is a literal
+- **`--listen` replaces both** and may repeat; for each port the service also
+  holds the other of `127.0.0.1` and `::1`. Each value is a literal
   loopback IP address with a port; `localhost`, `0.0.0.0` or another address
   exits `2`, and an address it cannot bind, such as a taken port, stops it
-  with an error:
+  with an error that names it:
 
   ```sh
   maintainer service run --listen 127.0.0.1:8080 --listen '[::1]:8080'

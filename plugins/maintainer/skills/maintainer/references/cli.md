@@ -34,7 +34,6 @@ Flags of every `maintainer fetch` command:
 - `--profile strings`: limit this run to these profiles: repositories they list or track; others are left alone (repeatable)
 - `-q, --quiet`: suppress everything below error on stderr
 - `--timeout duration`: wall-clock budget for the whole command
-- `--token string`: personal access token for the first selected profile
 - `-v, --verbose count`: increase verbosity (-v, -vv, -vvv)
 
 Flags of `maintainer fetch` itself:
@@ -51,7 +50,7 @@ maintainer fetch config [command]
 
 ## maintainer fetch config init
 
-write a documented fetch.toml template
+write a documented fetch.toml template to the user folder or --config
 
 ```text
 maintainer fetch config init [flags]
@@ -101,18 +100,14 @@ Allows to work with GitHub repositories and automate routine.
 maintainer github [command]
 ```
 
-Flags of every `maintainer github` command:
-
-- `--token string`: personal access token
-
 ## maintainer github contribution
 
 Allows to look up the contribution calendar of the token owner,
 to find a moment to contribute, and to keep and compare snapshots of it.
 
 The calendar is read through the GitHub GraphQL API, which requires a token
-even for a public profile: set GITHUB_TOKEN or pass --token. Only diff of two
-snapshot files works without it. The days are counted as the profile counts
+even for a public profile: set GITHUB_TOKEN in the environment. Only diff of
+two snapshot files works without it. The days are counted as the profile counts
 them, by UTC dates, wherever the machine and the account are.
 
 A date of lookup and suggest that is empty or git is the author date of HEAD
@@ -145,7 +140,7 @@ made by snapshot. Two files need no token; a year does:
 
 The contribution calendar is read through the GitHub GraphQL API for
 the owner of the token, which is required even for a public profile:
-set GITHUB_TOKEN or pass --token. The days are counted as the profile
+set GITHUB_TOKEN in the environment. The days are counted as the profile
 counts them, by UTC dates, wherever the machine and the account are.
 The events of each month are kept in $XDG_CACHE_HOME/maintainer/contributions,
 or ~/.cache without it, and a month is fetched again when its total changes.
@@ -174,7 +169,7 @@ with --with-zero.
 
 The contribution calendar is read through the GitHub GraphQL API for
 the owner of the token, which is required even for a public profile:
-set GITHUB_TOKEN or pass --token. The days are counted as the profile
+set GITHUB_TOKEN in the environment. The days are counted as the profile
 counts them, by UTC dates, wherever the machine and the account are.
 The events of each month are kept in $XDG_CACHE_HOME/maintainer/contributions,
 or ~/.cache without it, and a month is fetched again when its total changes.
@@ -216,7 +211,7 @@ Weeks start on Sunday, and the week that contains January 1 is #01.
 
 The contribution calendar is read through the GitHub GraphQL API for
 the owner of the token, which is required even for a public profile:
-set GITHUB_TOKEN or pass --token. The days are counted as the profile
+set GITHUB_TOKEN in the environment. The days are counted as the profile
 counts them, by UTC dates, wherever the machine and the account are.
 The events of each month are kept in $XDG_CACHE_HOME/maintainer/contributions,
 or ~/.cache without it, and a month is fetched again when its total changes.
@@ -245,7 +240,7 @@ a year in the future is an error, and it is not before 1970.
 
 The contribution calendar is read through the GitHub GraphQL API for
 the owner of the token, which is required even for a public profile:
-set GITHUB_TOKEN or pass --token. The days are counted as the profile
+set GITHUB_TOKEN in the environment. The days are counted as the profile
 counts them, by UTC dates, wherever the machine and the account are.
 The events of each month are kept in $XDG_CACHE_HOME/maintainer/contributions,
 or ~/.cache without it, and a month is fetched again when its total changes.
@@ -287,7 +282,7 @@ or if there is no suitable moment up to now.
 
 The contribution calendar is read through the GitHub GraphQL API for
 the owner of the token, which is required even for a public profile:
-set GITHUB_TOKEN or pass --token. The days are counted as the profile
+set GITHUB_TOKEN in the environment. The days are counted as the profile
 counts them, by UTC dates, wherever the machine and the account are.
 The events of each month are kept in $XDG_CACHE_HOME/maintainer/contributions,
 or ~/.cache without it, and a month is fetched again when its total changes.
@@ -319,6 +314,27 @@ run the local maintainer service
 maintainer service [command]
 ```
 
+## maintainer service open
+
+Opens the running local maintainer service in the browser at the
+private address of its current run, the only address that serves the
+data. It reads the address from listen in service.toml, else uses
+127.0.0.1:17841 (--listen names another), and the label of the run from
+$XDG_STATE_HOME/maintainer/service/<port>.label, checks that the
+service on that address knows the label, and opens the address through a
+temporary page, so the label is in no command line. --print prints the
+address instead. Run it again after every start of the service.
+
+```text
+maintainer service open [flags]
+```
+
+Flags:
+
+- `--config string`: service config path (default: $XDG_CONFIG_HOME/maintainer/service.toml)
+- `--listen string`: address of the service (default: the first of listen in service.toml, else 127.0.0.1:17841)
+- `--print`: print the address to stdout and open nothing
+
 ## maintainer service run
 
 Serves the local maintainer service over HTTP on loopback, at
@@ -332,9 +348,13 @@ config and state as `maintainer status` does, with the home directory as
 the working directory. It runs as your user and listens on 127.0.0.1 and
 ::1; a default address the system lacks, as ::1 with IPv6 turned off, is
 skipped. listen in service.toml replaces the defaults, and --listen, which
-may repeat, replaces both. SIGINT or SIGTERM stops it once the responses
-in flight are sent. Do not run the mirror's export or push, or another
-editor of the issue files, while triaging in the browser.
+may repeat, replaces both; for each port it also holds the other of
+127.0.0.1 and ::1. Each start makes a new private address for the data,
+which `maintainer service open` opens in the browser; the plain address
+serves the pages without data, unless service.toml sets access =
+"open". SIGINT or SIGTERM stops it once the responses in flight are
+sent. Do not run the mirror's export or push, or another editor of the
+issue files, while triaging in the browser.
 
 ```text
 maintainer service run [flags]
