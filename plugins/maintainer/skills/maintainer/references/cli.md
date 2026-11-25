@@ -34,7 +34,7 @@ Flags of every `maintainer fetch` command:
 - `--profile strings`: limit this run to these profiles: repositories they list or track; others are left alone (repeatable)
 - `-q, --quiet`: suppress everything below error on stderr
 - `--timeout duration`: wall-clock budget for the whole command
-- `-v, --verbose count`: increase verbosity (-v, -vv, -vvv)
+- `-v, --verbose count`: increase verbosity: -v each action, -vv discovery, confirmations and saves, -vvv each Git operation
 
 Flags of `maintainer fetch` itself:
 
@@ -50,7 +50,7 @@ maintainer fetch config [command]
 
 ## maintainer fetch config init
 
-write a documented fetch.toml template to the user folder or --config
+write a documented fetch.toml template to the user folder or a .toml --config
 
 ```text
 maintainer fetch config init [flags]
@@ -78,7 +78,7 @@ maintainer fetch state [command]
 
 ## maintainer fetch state prune
 
-drop records whose disk path is missing
+drop records whose disk path is missing; --owner and --profile narrow it
 
 ```text
 maintainer fetch state prune
@@ -451,6 +451,7 @@ Looks in the user's and the project's skills of Claude Code and Codex, and
 in their plugins. Fails when a copy is incompatible with this binary, was
 changed after maintainer installed it, or no copy exists for a requested
 --agent; with --exact, also when a copy differs from this release.
+A dev or pseudo-version binary leaves compatibility unknown.
 
 ```text
 maintainer skill status [flags]

@@ -13,14 +13,14 @@ description: >-
   .github/.
 license: MIT
 compatibility: >-
-  Requires the maintainer binary >=0.5.1 <0.6.0 on macOS or Linux and Git on
+  Requires the maintainer binary >=0.5.2 <0.6.0 on macOS or Linux and Git on
   PATH. fetch and the contribution commands need network access and a GitHub
   token; status works offline.
 metadata:
   author: octomation
-  version: "0.5.1"
+  version: "0.5.2"
   tool: maintainer
-  tool-version-range: ">=0.5.1 <0.6.0"
+  tool-version-range: ">=0.5.2 <0.6.0"
 ---
 
 # maintainer
@@ -36,7 +36,7 @@ browser.
 
 ## 1. Check the binary first
 
-This skill describes maintainer `>=0.5.1 <0.6.0`. Before anything else:
+This skill describes maintainer `>=0.5.2 <0.6.0`. Before anything else:
 
 1. Run `maintainer version` and read the `version` line.
 2. Compare it with that range.
@@ -48,7 +48,7 @@ This skill describes maintainer `>=0.5.1 <0.6.0`. Before anything else:
      (`brew upgrade --formula octolab/tap/maintainer`) or reinstalling the
      skill from the binary
      (`maintainer skill install --agent claude-code --replace`, or `codex`).
-   - `dev`, a pseudo-version such as `v0.5.1-0.20261107…`, or unknown: treat
+   - `dev`, a pseudo-version such as `v0.5.2-0.20261107…`, or unknown: treat
      compatibility as unknown and rely on `--help`.
    - `maintainer skill` missing: the binary predates it; rely on `--help` only.
    - `maintainer` not found: explain how to install it
@@ -87,7 +87,7 @@ This skill describes maintainer `>=0.5.1 <0.6.0`. Before anything else:
 
 | The user wants | Command |
 | --- | --- |
-| A first config | `fetch config init` (writes `~/.config/maintainer/fetch.toml`; `--force` overwrites) |
+| A first config | `fetch config init` (writes `~/.config/maintainer/fetch.toml`, or a `.toml` `--config` path only; `--force` overwrites) |
 | To check a config | `fetch config validate`, or `cue vet -c fetch.cue fetch.toml` against the schema |
 | To see what fetch would do | `fetch`, or `fetch --format=json` |
 | To clone missing and refresh existing checkouts | `fetch --apply`, after reviewing the plan |
@@ -95,7 +95,7 @@ This skill describes maintainer `>=0.5.1 <0.6.0`. Before anything else:
 | Work in progress across checkouts | `status --format=plain` or `status --format=json` |
 | Checkouts of some owners | `status --owner acme --format=json` |
 | What fetch remembers | `fetch state show` |
-| To forget checkouts whose directory is gone | `fetch state prune` (writes the state at once) |
+| To forget checkouts whose directory is gone | `fetch state prune` (writes the state at once; `--owner` and `--profile` narrow it) |
 | A time to contribute | `github contribution suggest`; also `contribution lookup`, `contribution histogram`, `contribution snapshot`, `contribution diff` |
 | maintainer in a browser on this computer | `service run`, or `brew services start octolab/tap/maintainer`, then `service open` |
 
@@ -128,7 +128,7 @@ this release: [references/cli.md](references/cli.md).
   `[[repos]]` by `id` so a rule survives a rename.
 - **Profiles and tokens.** A profile is a token with the owners it discovers
   (`include_owners`, `["*"]` for the user and every organization they belong
-  to). Its token comes from `token_file` (mode `0600` at most), then
+  to, `["*", "other"]` adds an owner outside them). Its token comes from `token_file` (mode `0600` at most), then
   `token_env` (`GITHUB_TOKEN` for the first profile in alphabetical order),
   then an inline `token`. fetch needs a token even for public repositories;
   status needs none.
@@ -220,7 +220,8 @@ exist). It needs no token or network.
 - `a token is required`: the profile has no token; ask the user to export
   `GITHUB_TOKEN` or set `token_file`, never to paste the token to you.
 - A `conflict` names its path and reason: an occupied or foreign target, an
-  `incomplete clone`, a missing pin, two checkouts of one repository. Report
+  `incomplete clone`, a missing pin, a pin whose repository GitHub does not
+  confirm, two checkouts of one repository. Report
   it; the user decides, the rest of the plan still runs.
 - Exit `3` after apply: read the per-repository errors on stderr and the
   plan's summary; whatever succeeded stays applied, and the next apply retries
