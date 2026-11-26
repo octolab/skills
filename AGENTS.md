@@ -133,9 +133,11 @@ npx --yes github:octomation/skills-action#vX.Y.Z check   # generated files, regi
 
 `ci` runs the action's `check` on every push and pull request, plus a skills
 CLI discovery check and installing every plugin from the working tree with
-Claude Code and Codex. `ci.install.yml` installs a published tag from GitHub
-through every channel and compares every skill its provenance lists with the
-tool's release: each new tag, and weekly the latest tag of every tool.
+Claude Code and Codex; it fails if the workflows pin more than one version of
+the action. `ci.install.yml` installs a published tag from GitHub through
+every channel and compares every skill that the action's `inspect` reads from
+the tag with the tool's release: each new tag, weekly and on a change of the
+workflow the latest tag of every tool.
 
 Not covered automatically: upgrading an installed plugin from one release to
 the next. Codex accepts only git hosts for upgradable catalogs, so this needs
