@@ -19,6 +19,7 @@
     "maintainer": {
       "repository": "octomation/maintainer",
       "skill": "skills/maintainer",
+      "extra-skills": ["review"],
       "description": "Teach your coding agent to keep a workspace of GitHub checkouts in step with the maintainer CLI",
       "homepage": "https://maintainer.octolab.org/",
       "license": "MIT",
