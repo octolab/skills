@@ -88,24 +88,44 @@ jobs:
       - name: Install the agent CLIs
         run: npm install --global "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" "@openai/codex@${CODEX_VERSION}"
 
+      # provenance.json lists every published skill under `skills`, the main
+      # one first; a record without it, as before skills-action v0.2.0, holds
+      # the main skill only, at source.path. The plugin must hold exactly
+      # these skills.
+      - name: Read the published skills
+        run: |
+          # shellcheck disable=SC2016 # ${...} below is a JavaScript template
+          node -e '
+            const p = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))
+            const skills = p.skills ?? { [p.tool]: { path: p.source.path } }
+            for (const [name, s] of Object.entries(skills)) console.log(`${name} ${s.path}`)
+          ' "plugins/${TOOL}/provenance.json" >"${RUNNER_TEMP}/skills.txt"
+          cat "${RUNNER_TEMP}/skills.txt"
+          diff <(cd "plugins/${TOOL}/skills" && LC_ALL=C ls) <(cut -d ' ' -f 1 "${RUNNER_TEMP}/skills.txt" | LC_ALL=C sort)
+          echo "SKILLS=$(cut -d ' ' -f 1 "${RUNNER_TEMP}/skills.txt" | xargs)" >>"${GITHUB_ENV}"
+
       - name: Compare the payload with the tool release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          read -r repo tag path < <(node -p "const p = require('./plugins/${TOOL}/provenance.json'); [p.source.repository, p.source.tag, p.source.path].join(' ')")
+          read -r repo tag < <(node -p "const p = require('./plugins/${TOOL}/provenance.json'); [p.source.repository, p.source.tag].join(' ')")
           src="$(mktemp -d)"
           gh release download "${tag}" --repo "${repo}" --archive tar.gz --output - | tar -xz -C "${src}" --strip-components 1
-          diff -r "${src}/${path}" "plugins/${TOOL}/skills/${TOOL}"
+          while read -r name path; do
+            diff -r "${src}/${path}" "plugins/${TOOL}/skills/${name}"
+          done <"${RUNNER_TEMP}/skills.txt"
 
       - name: Install with the skills CLI
         env:
           DISABLE_TELEMETRY: '1'
         run: |
           dir="$(mktemp -d)"
+          args=()
+          for name in ${SKILLS}; do args+=(--skill "${name}"); done
           ( cd "${dir}" && npx -y "skills@${SKILLS_VERSION}" add "${GITHUB_REPOSITORY}#${TAG}" \
-              --skill "${TOOL}" -a claude-code -a codex --copy -y )
-          diff -r "plugins/${TOOL}/skills/${TOOL}" "${dir}/.claude/skills/${TOOL}"
-          diff -r "plugins/${TOOL}/skills/${TOOL}" "${dir}/.agents/skills/${TOOL}"
+              "${args[@]}" -a claude-code -a codex --copy -y )
+          diff -r "plugins/${TOOL}/skills" "${dir}/.claude/skills"
+          diff -r "plugins/${TOOL}/skills" "${dir}/.agents/skills"
 
       - name: Install, check and remove with Claude Code
         env:
@@ -124,7 +144,7 @@ jobs:
               process.exit(1)
             }
             console.log(got.installPath)')"
-          diff -r "plugins/${TOOL}/skills/${TOOL}" "${path}/skills/${TOOL}"
+          diff -r "plugins/${TOOL}/skills" "${path}/skills"
           claude plugin uninstall "${TOOL}@octolab"
           claude plugin marketplace remove octolab
 
@@ -137,7 +157,7 @@ jobs:
           codex plugin add "${TOOL}@octolab"
           list="$(codex plugin list)"
           grep -E "^${TOOL}@octolab +installed, enabled +${VERSION} " <<<"${list}"
-          diff -r "plugins/${TOOL}/skills/${TOOL}" "${CODEX_HOME}/plugins/cache/octolab/${TOOL}/${VERSION}/skills/${TOOL}"
+          diff -r "plugins/${TOOL}/skills" "${CODEX_HOME}/plugins/cache/octolab/${TOOL}/${VERSION}/skills"
           codex plugin remove "${TOOL}@octolab"
           codex plugin marketplace remove octolab
           list="$(codex plugin list 2>&1 || true)"

@@ -47,7 +47,7 @@ jobs:
       # generated files, registry, payloads, digests, tags, claude plugin
       # validate and the discovery result
       - name: Check the catalog
-        uses: octomation/skills-action@v0.1.1
+        uses: octomation/skills-action@v0.2.0
         env:
           CLAUDE_CONFIG_DIR: ${{ runner.temp }}/claude
           CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
@@ -77,7 +77,7 @@ jobs:
           for plugin in $(node -p "require('./.claude-plugin/marketplace.json').plugins.map(p => p.name).join(' ')"); do
             codex plugin add "${plugin}@octolab"
             version="$(node -p "require('./plugins/${plugin}/provenance.json').version")"
-            diff -r "plugins/${plugin}/skills/${plugin}" "${CODEX_HOME}/plugins/cache/octolab/${plugin}/${version}/skills/${plugin}"
+            diff -r "plugins/${plugin}/skills" "${CODEX_HOME}/plugins/cache/octolab/${plugin}/${version}/skills"
             codex plugin remove "${plugin}@octolab"
           done
           codex plugin marketplace remove octolab
