@@ -3,11 +3,18 @@ name: ci (install)
 # Installs a published skill from GitHub through every channel, the way users
 # do, and compares each installed copy with the tool's release. Runs for each
 # new <tool>--v* tag and weekly for the latest tag of every tool; older tags
-# are checked only on demand, through the tag input.
+# are checked only on demand, through the tag input. A change of this
+# workflow runs it for the latest tags too, so a new pin of the action runs
+# before the next publication does.
 
 on:
+  pull_request:
+    branches: [ main ]
+    paths: [ .github/workflows/ci.install.yml ]
   push:
+    branches: [ main ]
     tags: [ '*--v*' ]
+    paths: [ .github/workflows/ci.install.yml ] # tag pushes ignore paths
   schedule:
     - cron: 0 7 * * 1 # at 07:00 on Monday, UTC
   workflow_dispatch:
@@ -88,40 +95,39 @@ jobs:
       - name: Install the agent CLIs
         run: npm install --global "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" "@openai/codex@${CODEX_VERSION}"
 
-      # provenance.json lists every published skill under `skills`, the main
-      # one first; a record without it, as before skills-action v0.2.0, holds
-      # the main skill only, at source.path. The plugin must hold exactly
-      # these skills.
+      # The action reads the record of the tag: every published skill with its
+      # path in the tool repository, the main one first, each folder checked
+      # against its digest and the plugin holding exactly these folders.
       - name: Read the published skills
-        run: |
-          # shellcheck disable=SC2016 # ${...} below is a JavaScript template
-          node -e '
-            const p = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))
-            const skills = p.skills ?? { [p.tool]: { path: p.source.path } }
-            for (const [name, s] of Object.entries(skills)) console.log(`${name} ${s.path}`)
-          ' "plugins/${TOOL}/provenance.json" >"${RUNNER_TEMP}/skills.txt"
-          cat "${RUNNER_TEMP}/skills.txt"
-          diff <(cd "plugins/${TOOL}/skills" && LC_ALL=C ls) <(cut -d ' ' -f 1 "${RUNNER_TEMP}/skills.txt" | LC_ALL=C sort)
-          echo "SKILLS=$(cut -d ' ' -f 1 "${RUNNER_TEMP}/skills.txt" | xargs)" >>"${GITHUB_ENV}"
+        id: published
+        uses: octomation/skills-action@v0.2.1
+        with:
+          command: inspect
+          tool: ${{ matrix.tool }}
 
       - name: Compare the payload with the tool release
         env:
           GH_TOKEN: ${{ github.token }}
+          SOURCE_REPOSITORY: ${{ steps.published.outputs.source-repository }}
+          SOURCE_TAG: ${{ steps.published.outputs.source-tag }}
+          SKILLS_PATHS: ${{ steps.published.outputs.skills-paths }}
         run: |
-          read -r repo tag < <(node -p "const p = require('./plugins/${TOOL}/provenance.json'); [p.source.repository, p.source.tag].join(' ')")
           src="$(mktemp -d)"
-          gh release download "${tag}" --repo "${repo}" --archive tar.gz --output - | tar -xz -C "${src}" --strip-components 1
+          gh release download "${SOURCE_TAG}" --repo "${SOURCE_REPOSITORY}" --archive tar.gz --output - | tar -xz -C "${src}" --strip-components 1
+          skills="$(jq -er 'to_entries[] | "\(.key) \(.value)"' <<<"${SKILLS_PATHS}")"
           while read -r name path; do
             diff -r "${src}/${path}" "plugins/${TOOL}/skills/${name}"
-          done <"${RUNNER_TEMP}/skills.txt"
+          done <<<"${skills}"
 
       - name: Install with the skills CLI
         env:
           DISABLE_TELEMETRY: '1'
+          SKILLS_PATHS: ${{ steps.published.outputs.skills-paths }}
         run: |
           dir="$(mktemp -d)"
+          names="$(jq -er 'keys_unsorted[]' <<<"${SKILLS_PATHS}")"
           args=()
-          for name in ${SKILLS}; do args+=(--skill "${name}"); done
+          for name in ${names}; do args+=(--skill "${name}"); done
           ( cd "${dir}" && npx -y "skills@${SKILLS_VERSION}" add "${GITHUB_REPOSITORY}#${TAG}" \
               "${args[@]}" -a claude-code -a codex --copy -y )
           diff -r "plugins/${TOOL}/skills" "${dir}/.claude/skills"

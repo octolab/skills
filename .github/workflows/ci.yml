@@ -32,6 +32,16 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v7.0.1
         with: { fetch-depth: 0 }
+      # ci.yml checks with the action and ci.install.yml inspects with it: one
+      # version for both, whichever file a bump reaches.
+      - name: Check that the workflows pin one version of skills-action
+        run: |
+          pins="$(grep -rhoE 'uses:[[:space:]]*octomation/skills-action@[^[:space:]]+' .github/workflows | sed -E 's/^uses:[[:space:]]*//' | sort -u)"
+          echo "${pins}"
+          if [ "$(grep -c . <<<"${pins}")" -ne 1 ]; then
+            echo '::error::.github/workflows must pin exactly one version of octomation/skills-action'
+            exit 1
+          fi
       - name: Set up Node.js
         uses: actions/setup-node@v7.1.0
         with: { node-version: 24 }
@@ -47,7 +57,7 @@ jobs:
       # generated files, registry, payloads, digests, tags, claude plugin
       # validate and the discovery result
       - name: Check the catalog
-        uses: octomation/skills-action@v0.2.0
+        uses: octomation/skills-action@v0.2.1
         env:
           CLAUDE_CONFIG_DIR: ${{ runner.temp }}/claude
           CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
@@ -76,7 +86,7 @@ jobs:
           codex plugin marketplace add "${GITHUB_WORKSPACE}"
           for plugin in $(node -p "require('./.claude-plugin/marketplace.json').plugins.map(p => p.name).join(' ')"); do
             codex plugin add "${plugin}@octolab"
-            version="$(node -p "require('./plugins/${plugin}/provenance.json').version")"
+            version="$(node -p "require('./plugins/${plugin}/.claude-plugin/plugin.json').version")"
             diff -r "plugins/${plugin}/skills" "${CODEX_HOME}/plugins/cache/octolab/${plugin}/${version}/skills"
             codex plugin remove "${plugin}@octolab"
           done
