@@ -123,31 +123,53 @@ maintainer github contribution suggest --short
 maintainer github contribution histogram 2026-10
 maintainer github contribution snapshot 2026 > snap.json
 maintainer github contribution diff snap.json 2026
+git commit --date="$(maintainer github contribution suggest --short)"
 ```
 
 These read the calendar of the token's owner and need a token even for a
-public profile. The days match the profile's calendar of the year in any time
-zone, and a repeated run reads only the months that changed, from the cache in
-`$XDG_CACHE_HOME/maintainer/contributions` (or `~/.cache`). `suggest` prints a
-UTC timestamp to stdout and exits `4` when no moment fits up to now; it never
-creates a commit. A `warn:` line names the months whose reviews may be a day
-off because GitHub gives no date for some of their contributions.
+public profile. They take it only from `GITHUB_TOKEN` in the environment,
+never from a `fetch.toml` profile. The days match the profile's calendar of
+the year in any time zone, and a repeated run reads only the months that
+changed, from the cache in `$XDG_CACHE_HOME/maintainer/contributions` (or
+`~/.cache`). Without a date, `suggest` anchors at the author date of `HEAD` in
+the current repository (now outside one or before its first commit), prints a
+UTC timestamp to stdout for `git commit --date`, and never creates a commit
+itself; run that commit only with the user's go-ahead. It exits `2` before
+any request without a token or for an anchor in the future, and `4` when no
+moment fits up to now. A `warn:` line names the months whose reviews may be a
+day off because GitHub gives no date for some of their contributions.
 
 ## Install and update this skill
 
-The binary carries the skill for its own version:
+The binary carries this skill and the review skill for its own version:
 
 ```sh
 maintainer skill info
-maintainer skill install --agent claude-code,codex
 maintainer skill status
+maintainer skill install --agent claude-code,codex
 ```
 
-`install` writes `~/.claude/skills/maintainer` for Claude Code and
-`~/.agents/skills/maintainer` for Codex, or the same under the current
-directory with `--project`, and leaves directories of other installers alone.
-After upgrading maintainer, run it again with `--replace`. `status` lists every
-copy the agents load, flags incompatible, changed and duplicate ones, and
-exits `1` on a problem. `maintainer skill export -o skills` writes the skill
-into any other directory, and `maintainer skill show --file references/cli.md`
-prints one of its files.
+`status` lists every copy of both skills that the agents load: the user's
+and the project's skills of Claude Code and Codex, their `maintainer`
+plugins and the legacy Codex directory. For each copy it reports whether it
+is compatible with the binary, whether it is the same as this release, and
+who installed it; a plugin copy says `plugin: maintainer@<catalog>`. It exits
+`1` when a copy is incompatible, was changed after maintainer installed it,
+or, for a requested `--agent`, is missing; with `--exact`, also when a copy
+differs from this release or a plugin does not hold both skills. Two copies
+of one skill for one agent are only a warning, and so is a missing review
+skill outside a plugin. Usage errors exit `2`.
+
+Update a copy where it came from. A plugin copy is updated by the agent's
+plugin manager: `claude plugin update maintainer@octolab`, or
+`codex plugin marketplace upgrade octolab` and then
+`codex plugin add maintainer@octolab`. A copy installed by maintainer is
+replaced after upgrading the binary with `install --replace`, which writes
+`~/.claude/skills/<skill>` for Claude Code and `~/.agents/skills/<skill>` for
+Codex, or the same under the current directory with `--project`. Don't
+install from the binary next to a plugin: the agent loads both. `install`
+leaves directories of other installers alone and skips a review skill of
+another tool; `--skill` picks one skill. `maintainer skill export -o skills`
+writes `skills/maintainer` and `skills/review` into any other directory, and
+`maintainer skill show --file references/cli.md` prints one of this skill's
+files.

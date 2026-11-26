@@ -13,14 +13,14 @@ description: >-
   .github/.
 license: MIT
 compatibility: >-
-  Requires the maintainer binary >=0.5.2 <0.6.0 on macOS or Linux and Git on
+  Requires the maintainer binary >=0.6.0 <0.7.0 on macOS or Linux and Git on
   PATH. fetch and the contribution commands need network access and a GitHub
   token; status works offline.
 metadata:
   author: octomation
-  version: "0.5.2"
+  version: "0.6.0"
   tool: maintainer
-  tool-version-range: ">=0.5.2 <0.6.0"
+  tool-version-range: ">=0.6.0 <0.7.0"
 ---
 
 # maintainer
@@ -36,7 +36,7 @@ browser.
 
 ## 1. Check the binary first
 
-This skill describes maintainer `>=0.5.2 <0.6.0`. Before anything else:
+This skill describes maintainer `>=0.6.0 <0.7.0`. Before anything else:
 
 1. Run `maintainer version` and read the `version` line.
 2. Compare it with that range.
@@ -44,17 +44,30 @@ This skill describes maintainer `>=0.5.2 <0.6.0`. Before anything else:
      command's flags.
    - Older or newer: don't rely on the recipes here. Read the skill that ships
      with the binary, `maintainer skill show`, and tell the user the versions
-     differ; suggest upgrading maintainer
-     (`brew upgrade --formula octolab/tap/maintainer`) or reinstalling the
-     skill from the binary
-     (`maintainer skill install --agent claude-code --replace`, or `codex`).
-   - `dev`, a pseudo-version such as `v0.5.2-0.20261107…`, or unknown: treat
-     compatibility as unknown and rely on `--help`.
+     differ. Run `maintainer skill status` to see where this skill comes from
+     and suggest updating the side that is behind:
+     - the binary: `brew upgrade --formula octolab/tap/maintainer`;
+     - a `plugin: maintainer@octolab` copy, from the OctoLab catalog: the
+       agent's plugin manager, `claude plugin update maintainer@octolab` in
+       Claude Code, or `codex plugin marketplace upgrade octolab`, then
+       `codex plugin add maintainer@octolab` in Codex;
+     - a copy `installed by maintainer`: replace it from the binary,
+       `maintainer skill install --agent claude-code --replace`, or `codex`.
+
+     Never install a copy from the binary next to a plugin: the agent loads
+     both.
+   - `dev`, a pseudo-version such as `v0.6.1-0.20261126121749-fbe59efd127f`,
+     sometimes ending in `+dirty`, or unknown: treat compatibility as unknown
+     and rely on `--help`.
    - `maintainer skill` missing: the binary predates it; rely on `--help` only.
    - `maintainer` not found: explain how to install it
      (https://maintainer.octolab.org/quickstart/); don't install it without
      the user's go-ahead.
-3. Never guess a flag or a config key that `--help` or the schema doesn't show.
+3. Never guess a flag or a config key that `--help` or the configuration
+   guide, https://maintainer.octolab.org/fetch/#configuration, doesn't show.
+
+For a review report of a repository, use the review skill that comes with
+this one: `maintainer:review` in the plugin, or `review` from the binary.
 
 ## 2. Ground rules
 
@@ -66,8 +79,9 @@ This skill describes maintainer `>=0.5.2 <0.6.0`. Before anything else:
   plan printed earlier.
 - **Tokens stay secret.** Never print `GITHUB_TOKEN`, a `token_file` or an
   inline `token`, and never put a token on the command line: `--token` is
-  removed and exits `2`. Ask the user to export the variable or set
-  `token_file` themselves.
+  removed and exits `2`. Ask the user to set the token themselves: for
+  `fetch`, in its profile (see §4); for `github contribution`, which reads
+  nothing else, as `GITHUB_TOKEN` in the environment.
 - **Leave the checkouts to Git and the user.** maintainer never pushes,
   merges, resets or deletes, and neither should you on its behalf: don't
   delete an `orphan`, don't remove a push lock (`no_push`), don't edit the
@@ -88,7 +102,7 @@ This skill describes maintainer `>=0.5.2 <0.6.0`. Before anything else:
 | The user wants | Command |
 | --- | --- |
 | A first config | `fetch config init` (writes `~/.config/maintainer/fetch.toml`, or a `.toml` `--config` path only; `--force` overwrites) |
-| To check a config | `fetch config validate`, or `cue vet -c fetch.cue fetch.toml` against the schema |
+| To check a config | `fetch config validate` |
 | To see what fetch would do | `fetch`, or `fetch --format=json` |
 | To clone missing and refresh existing checkouts | `fetch --apply`, after reviewing the plan |
 | One owner or one account only | `fetch --owner acme` or `fetch --profile bot` |
@@ -99,8 +113,10 @@ This skill describes maintainer `>=0.5.2 <0.6.0`. Before anything else:
 | A time to contribute | `github contribution suggest`; also `contribution lookup`, `contribution histogram`, `contribution snapshot`, `contribution diff` |
 | maintainer in a browser on this computer | `service run`, or `brew services start octolab/tap/maintainer`, then `service open` |
 
-`fetch` flags such as `--config`, `--owner`, `--format` and `--timeout` work
-for its subcommands too. Recipes:
+The subcommands of `fetch` list its flags under Global Flags but use only
+`--config`, and `state prune` also `--owner` and `--profile`; `--format` is
+ignored: `config validate` prints `ok: <path> (…)`, `state show` always prints
+JSON. Recipes:
 [references/workflows.md](references/workflows.md). Every command and flag of
 this release: [references/cli.md](references/cli.md).
 
@@ -116,22 +132,34 @@ this release: [references/cli.md](references/cli.md).
   directory.
 - **The schema is the contract.** The keys are `[workspace]` (`root`, `path`,
   `pins`), `[defaults]` (`clone_url`, `concurrency`, `state_file`),
-  `[filters]`, `[profiles.<name>]`, `[[owners]]` and `[[repos]]`; the schema
-  `fetch.cue` lives in the maintainer repository under `internal/config/`. An
-  unknown key or table is bad config: fetch, its subcommands and status exit
-  `2` and suggest the key it was probably meant to be. Fix the key; don't
-  remove what you don't understand.
+  `[filters]`, `[profiles.<name>]`, `[[owners]]` and `[[repos]]`; every key
+  with its default is in the guide,
+  https://maintainer.octolab.org/fetch/#configuration. An unknown key or
+  table is bad config: fetch, its subcommands and status exit `2` and suggest
+  the key it was probably meant to be. Fix the key; don't remove what you
+  don't understand.
 - **Layout is scope.** `workspace.path`, by default
   `{{.Visibility}}/{{.Owner}}/{{.Repo}}`, is both where new clones go and
   the only place both commands look. Checkouts elsewhere are managed only
   through `workspace.pins` or a per-repository `path` in `[[repos]]`; match
   `[[repos]]` by `id` so a rule survives a rename.
+- **Rules the user may need**, in their config:
+  - `[[repos]]` with `ignore = true` drops a repository from fetch and status:
+    the fix for a confirmed `orphan`, or, matched by `owner` and `name`, for a
+    checkout behind SSO that the token cannot read.
+  - `clone_url = "https"` (default `"ssh"`) in `[defaults]`, a profile,
+    `[[owners]]` or `[[repos]]`, the most specific winning: HTTPS with the
+    profile's token is the supported way to clone a private repository, SSH
+    needs the user's `ssh-agent`.
+  - `[[owners]]` with `name` and `path` gives one owner its own layout
+    template, relative to `workspace.root`.
 - **Profiles and tokens.** A profile is a token with the owners it discovers
   (`include_owners`, `["*"]` for the user and every organization they belong
   to, `["*", "other"]` adds an owner outside them). Its token comes from `token_file` (mode `0600` at most), then
   `token_env` (`GITHUB_TOKEN` for the first profile in alphabetical order),
   then an inline `token`. fetch needs a token even for public repositories;
-  status needs none.
+  status needs none. The `github contribution` commands ignore the profiles
+  and take the token only from `GITHUB_TOKEN`.
 - **State.** `$XDG_STATE_HOME/maintainer/fetch/state.json` (usually
   `~/.local/state/maintainer/fetch/`), or `defaults.state_file`. It is keyed
   by the repository id, which is how a rename becomes a move instead of a
@@ -171,6 +199,15 @@ directory, and `service.toml` in `$XDG_CONFIG_HOME/maintainer` or
 the first start it writes that file with every key commented out, so read it
 to learn where the service listens (`--config` names another file, which must
 exist). It needs no token or network.
+
+- **Which checkouts.** `[fetch] config` in `service.toml` names the fetch
+  config, relative to the home directory: set it when the config is not in
+  `~/.config/maintainer`, since `brew services` starts the service without
+  the shell's `$MAINTAINER_FETCH_CONFIG`. Without any fetch config it starts
+  and reads the default layout under the home directory; a `fetch.toml` in
+  the home directory is never read, and alone it stops the start with exit
+  `2`. `[[repos]]` with `match` and `weight` (default `1`) multiplies the
+  score of one repository's issues.
 
 - **It writes issue files.** Setting `impact: *` or `effort: *` on a page
   changes those label lines in the issue file of the checkout and nothing
@@ -217,8 +254,11 @@ exist). It needs no token or network.
 
 - `unknown key …; did you mean …?`: fix the key in the named file, then run
   `maintainer fetch config validate`.
-- `a token is required`: the profile has no token; ask the user to export
-  `GITHUB_TOKEN` or set `token_file`, never to paste the token to you.
+- `a token is required` or `no token resolved` from `fetch`: the profile has
+  no token; ask the user to set its `token_file` or export its `token_env`
+  (`GITHUB_TOKEN` for the first profile). `a GitHub token is required` from
+  `github contribution` (exit `2`): only `GITHUB_TOKEN` in the environment
+  helps, a `token_file` does not. Never ask for the token itself.
 - A `conflict` names its path and reason: an occupied or foreign target, an
   `incomplete clone`, a missing pin, a pin whose repository GitHub does not
   confirm, two checkouts of one repository. Report
@@ -226,6 +266,13 @@ exist). It needs no token or network.
 - Exit `3` after apply: read the per-repository errors on stderr and the
   plan's summary; whatever succeeded stays applied, and the next apply retries
   the rest.
+- To see more of a `fetch` run, add `-vv` (discovery, confirmations and
+  state saves) or `-vvv` (each Git operation with its duration and error);
+  the lines go to stderr.
+- `service open` says the service is not running when it was started on
+  another port, such as with `service run --listen`: name that address,
+  `maintainer service open --listen 127.0.0.1:8080`. The log of a service
+  under `brew services` is in `$(brew --prefix)/var/log/maintainer.log`.
 - A rate limit makes fetch wait once; a wait longer than an hour or than
   `--timeout` stops it with the wait named.
 
