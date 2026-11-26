@@ -1,25 +1,25 @@
 {
   "schema": 1,
   "tool": "maintainer",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "source": {
     "repository": "octomation/maintainer",
-    "tag": "v0.6.0",
-    "commit": "ab5d50e8722f87ce08781e2c34f920c485ee1cfd",
+    "tag": "v0.6.1",
+    "commit": "acd39335fdb77d82c4f33dac6fac945d98dfd9fe",
     "path": "skills/maintainer"
   },
   "digest": {
     "algorithm": "octolab-skill-sha256-v1",
-    "value": "sha256:0055838379705c04e9e1566d3128be3ced02d287d1e00d928f5a212b2de4a41c"
+    "value": "sha256:25ec7e1734fc5eb825061c0b861085e90432e905d71bd0265fedb6010fdbca62"
   },
   "skills": {
     "maintainer": {
       "path": "skills/maintainer",
-      "digest": "sha256:0055838379705c04e9e1566d3128be3ced02d287d1e00d928f5a212b2de4a41c"
+      "digest": "sha256:25ec7e1734fc5eb825061c0b861085e90432e905d71bd0265fedb6010fdbca62"
     },
     "review": {
       "path": "skills/review",
-      "digest": "sha256:efc2733d89602ca9b076b4a57578f87989942660652d4a288f28e6d7285654cc"
+      "digest": "sha256:4589170ec295ca2d8c23a7f6b0ca84e45c6a9b5e26423b3d141f90ddf3ff07cb"
     }
   },
   "publisher": "octomation/skills-action@v0.2.0"
