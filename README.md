@@ -18,11 +18,18 @@ Register the catalog once, then install the skills you need.
 |:------|:---------|:----------------|:-------|
 | Claude Code | `claude plugin marketplace add octolab/skills` | `claude plugin install <tool>@octolab` | `claude plugin update <tool>@octolab` |
 | Codex | `codex plugin marketplace add octolab/skills` | `codex plugin add <tool>@octolab` | `codex plugin marketplace upgrade octolab` |
-| Any agent, via [skills.sh](https://skills.sh/) | — | `npx skills add octolab/skills --skill <tool>` | `npx skills update` |
+| Any agent, via [skills.sh](https://skills.sh/) | — | `npx skills add octolab/skills --skill <skill>` | `npx skills update` |
 
 Install every skill at once with `npx skills add octolab/skills --skill '*'`.
 Add `-a claude-code -a codex` to choose agents and `-g` to install for your user
 instead of the current project.
+
+A plugin is named after its tool and holds the tool's main skill, also named
+after the tool. A tool may publish extra skills next to it, such as a review
+skill: the plugin installs them all, and agents show each as
+`<plugin>:<skill>`, e.g. `maintainer:maintainer` and `maintainer:review`. The
+skills CLI installs skills by name, without the plugin: `--skill maintainer
+--skill review`.
 
 ### Versions and compatibility
 
@@ -40,7 +47,7 @@ Each release is also tagged `<tool>--v<version>`. To keep one skill on a
 release (`X.Y.Z` stands for the version you need):
 
 ```bash
-npx skills add 'octolab/skills#<tool>--vX.Y.Z' --skill <tool>
+npx skills add 'octolab/skills#<tool>--vX.Y.Z' --skill <skill>
 ```
 
 Registering the catalog at a tag pins the whole catalog, every tool included:

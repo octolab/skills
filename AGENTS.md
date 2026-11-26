@@ -10,7 +10,7 @@ before changing anything.
 
 | Path | Owner | Edit by hand |
 | --- | --- | --- |
-| `catalog.json` | maintainers | yes: registers tools |
+| `catalog.json` | maintainers | yes: registers tools and their extra skills |
 | `plugins/<tool>/` | the tool's release workflow | never |
 | `.claude-plugin/marketplace.json` | `octolab-skills generate` | never; regenerate |
 | `plugins/<tool>/.claude-plugin/plugin.json` | `octolab-skills generate` | never; regenerate |
@@ -32,9 +32,30 @@ catalog.json                        registry: tools allowed to publish
 .claude-plugin/marketplace.json     catalog "octolab" for Claude Code, Codex, skills CLI
 plugins/<tool>/
   .claude-plugin/plugin.json        generated; version = the tool release
-  provenance.json                   source repository, tag, commit, payload digest
-  skills/<tool>/                    exact copy of the tool's skills/<tool>/ at the release tag
+  provenance.json                   source repository, tag, commit, digest of every skill
+  skills/<tool>/                    exact copy of the tool's main skill at the release tag
+  skills/<name>/                    exact copy of each extra skill the release published
 ```
+
+A tool has one main skill, named after the tool, and may register extra skills
+in `catalog.json` under `extra-skills`, a list of names:
+
+```json
+"maintainer": {
+  "repository": "octomation/maintainer",
+  "skill": "skills/maintainer",
+  "extra-skills": ["review"]
+}
+```
+
+An extra skill lives in the tool's repository next to the main one, in
+`skills/review/` for `skill: skills/maintainer`. Agents show plugin skills as
+`<plugin>:<skill>`, e.g. `maintainer:review`; the skills CLI installs them by
+bare name, so a skill name is unique across the catalog: an extra skill can't
+be named after a tool or another tool's extra skill. A registered skill that a
+published version lacks is valid; a release fails to publish if a registered
+skill is missing at its tag, so register a skill once the release that ships
+it is near.
 
 Claude Code and Codex read the same `.claude-plugin/` manifests. The skills CLI
 follows the catalog's local `./plugins/<tool>` entries. Keep every entry local:
@@ -50,7 +71,8 @@ scalars, folded and literal blocks, and one level of nested string maps;
 the action rejects anything else. `metadata` must contain:
 
 - `version`: the tool release without `v`;
-- `tool`: the tool name, equal to `name` and the directory;
+- `tool`: the tool name, equal to `name` and the directory for the main
+  skill; an extra skill has `name` equal to its directory and `tool` the tool;
 - `tool-version-range`: space-separated comparators (`=`, `>=`, `>`, `<=`, `<`)
   that must include `version`.
 
@@ -68,6 +90,12 @@ decimal byte length, NUL and the bytes. Symlinks and dotfiles are not allowed.
 Tools that embed their skill compute the same value in `<tool> skill info`;
 the action's `tests/lib.test.mjs` holds the shared test vector.
 
+**Provenance.** `source.path` and `digest` describe the main skill. A
+publication with extra skills adds `skills`: a map from each published skill,
+the main one first, to its `path` in the tool's repository and its digest. A
+record without `skills`, as every single-skill tool and every publication
+before skills-action v0.2.0 writes, holds the main skill only.
+
 **Tags.** `<tool>--v<version>` points at the commit that published that version.
 Tags are never moved or deleted: the action never does it, and nobody
 does it by hand. A ruleset enforcing this is deferred until the first
@@ -84,13 +112,14 @@ which also writes to the Homebrew tap: mint a separate token for this
 repository, the tap token is scoped to the tap.
 
 Each publication is one commit `chore(<tool>): publish vX.Y.Z`, signed by the
-App, that writes `plugins/<tool>/` and regenerates `marketplace.json`, and
-the tag `<tool>--vX.Y.Z` on it. Tags created with the App token trigger
-`ci.install.yml`.
+App, that writes `plugins/<tool>/` with every published skill and regenerates
+`marketplace.json`, and the tag `<tool>--vX.Y.Z` on it. Tags created with the
+App token trigger `ci.install.yml`.
 
 ## Adding a tool
 
-1. Register it in `catalog.json` and add a section to `README.md`.
+1. Register it in `catalog.json` and add a section to `README.md`; list its
+   extra skills, if any, under `extra-skills`.
 2. Add the token and publish steps from the action's README to the tool's
    release workflow; the action reads the tool with the workflow's own
    `github.token`.
@@ -105,7 +134,8 @@ npx --yes github:octomation/skills-action#vX.Y.Z check   # generated files, regi
 `ci` runs the action's `check` on every push and pull request, plus a skills
 CLI discovery check and installing every plugin from the working tree with
 Claude Code and Codex. `ci.install.yml` installs a published tag from GitHub
-through every channel: each new tag, and weekly the latest tag of every tool.
+through every channel and compares every skill its provenance lists with the
+tool's release: each new tag, and weekly the latest tag of every tool.
 
 Not covered automatically: upgrading an installed plugin from one release to
 the next. Codex accepts only git hosts for upgradable catalogs, so this needs
