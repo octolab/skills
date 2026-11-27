@@ -5,7 +5,7 @@ description: >-
   modes, and check the form: code mode asks if the maintainer can release the
   code, issue mode asks if the backlog states the truth, security mode asks
   who can harm the user or the release channel. The report is one file in
-  .github/reviews/, or in a private, Git-ignored .agents/reviews/ for
+  .github/reports/, or in a private, Git-ignored .agents/reports/ for
   security; it is not a set of comments on a diff. It also tells when a
   private report is ready for publication. Use on "review report", "write a
   code review report", "write an issue review report", "write a security
@@ -14,12 +14,13 @@ description: >-
 license: MIT
 compatibility: >-
   Requires python3 and Git. Without an issue mirror in .github/issues/, the
-  publication rule reads GitHub through a signed-in gh.
+  publication rule reads GitHub through a signed-in gh. Security mode reads
+  the GitHub alerts through gh.
 metadata:
   author: octomation
-  version: "0.6.1"
+  version: "0.6.2"
   tool: maintainer
-  tool-version-range: ">=0.6.1 <0.7.0"
+  tool-version-range: ">=0.6.2 <0.7.0"
 ---
 
 # Review
@@ -99,11 +100,12 @@ Step 13: a fixed finding is absent. A tracked finding stays visible until its is
 Commands, from the repository root. `<skill-dir>` is the folder of this file.
 
 ```sh
-git status --porcelain -- . ':!.github/reviews' | shasum
+git status --porcelain -- . ':!.github/reports' | shasum
 python3 <skill-dir>/scripts/review.py new <code|issue|security> --model <model>
 python3 <skill-dir>/scripts/review.py check <report>
 python3 <skill-dir>/scripts/review.py status
 python3 <skill-dir>/scripts/review.py check --published <report>
+python3 <skill-dir>/scripts/review.py alerts
 ```
 
 - Tree digest: the first command. Run it in step 2 and in step 9. The two results must be equal.
@@ -115,20 +117,21 @@ python3 <skill-dir>/scripts/review.py check --published <report>
 - With a mirror, `status` reads the reports and `.github/issues/`. It uses no network and changes no file.
 - Without a mirror, `status` and `check --published` read the issues with `gh`.
 - If `gh` is absent, not signed in or cannot read an issue, the report stays private.
-- `status` exits 1 when a report in `.github/reviews/` breaks the publication rule or when it cannot read the issues.
+- `status` exits 1 when a report in `.github/reports/` breaks the publication rule or when it cannot read the issues.
 - `check --published` applies the publication rule to one report. It refuses a report with a finding that is not closed.
 - `check` without `--published` is the check of step 9. After the hand-over, test a private report only with `status` or `check --published`.
+- `alerts` reads the security alerts of the repository on GitHub with `gh api`. Security mode runs it in step 3. See `references/security.md`, GitHub alerts.
 
 ## Private reports
 
-- `new security` writes to `.agents/reviews/`. A security report is private from its first line.
-- `new security` refuses to write when Git does not ignore the new report in `.agents/reviews/`, or outside a Git repository.
-- `check` gives a `privacy` error for a report in `.agents/reviews/` that Git does not ignore.
-- If `new` refuses, tell the owner to add `.agents/reviews/` to `.gitignore` or `.git/info/exclude`. Do not add it yourself.
+- `new security` writes to `.agents/reports/`. A security report is private from its first line.
+- `new security` refuses to write when Git does not ignore the new report in `.agents/reports/`, or outside a Git repository.
+- `check` gives a `privacy` error for a report in `.agents/reports/` that Git does not ignore.
+- If `new` refuses, tell the owner to add `.agents/reports/` to `.gitignore` or `.git/info/exclude`. Do not add it yourself.
 - A code or issue finding that an attacker can use makes the report private.
-- Before you write that finding, move the report to `.agents/reviews/` with the same file name.
+- Before you write that finding, move the report to `.agents/reports/` with the same file name.
 - A private report stays private until each of its findings is closed. See `references/report.md`, Publication.
-- Never move a report to `.github/reviews/` yourself. Only the owner publishes: he runs the `Publish:` line and pushes.
+- Never move a report to `.github/reports/` yourself. Only the owner publishes: he runs the `Publish:` line and pushes.
 - The `Publish:` line tests the report with `check --published`. Then it moves the file unchanged.
 - On a request to publish a report, run `status` and print its lines.
 
@@ -139,7 +142,7 @@ python3 <skill-dir>/scripts/review.py check --published <report>
 - Run a built program with scratch `HOME`, `XDG_CONFIG_HOME` and `XDG_STATE_HOME`, and without tokens.
 - Run a built program with the scratch folder as the working directory.
 - Do not read the owner's real configuration, state or data.
-- Leave old reports in `.github/reviews/` as they are. Do not restate their status.
+- Leave old reports in `.github/reports/` as they are. Do not restate their status.
 - Do not add a status column or a later annotation to a report. The backlog is the only registry.
 - `status` derives the state of a report from the backlog. The report holds no state and no link to a later issue.
 - Do not make issues. Do not fix findings.
@@ -150,7 +153,7 @@ On success, `check` prints these lines. Print them as your last message, without
 
 ```text
 Code review: BLOCKED — Critical 1, High 0, Medium 1, Low 1.
-Report: .github/reviews/20261125T101500Z.md
+Report: .github/reports/20261125T101500Z.md
 First: F1 A failed save leaves an empty state file.
 Coverage: full.
 ```
@@ -160,10 +163,10 @@ Coverage: full.
 - A private report adds a fifth line: `Private: do not publish this report before the fix ships.`
 - With a mirror, if the rule of Publication already holds for the new private report, the fifth line is its `Publish:` line.
 - With a mirror, `check` adds the `Publish:` line of each other private report that is publishable.
-- With a mirror, `check` adds a `Refused:` line for each report in `.github/reviews/` that breaks the publication rule.
+- With a mirror, `check` adds a `Refused:` line for each report in `.github/reports/` that breaks the publication rule.
 - Without a mirror, run `status` for these lines: `check` does not read GitHub.
 
 ```text
-Publish: python3 <skill-dir>/scripts/review.py check --published .agents/reviews/20261125T101500Z.md && mv .agents/reviews/20261125T101500Z.md .github/reviews/20261125T101500Z.md
-Refused: .github/reviews/20261125T101500Z.md breaks the publication rule; run status.
+Publish: python3 <skill-dir>/scripts/review.py check --published .agents/reports/20261125T101500Z.md && mv .agents/reports/20261125T101500Z.md .github/reports/20261125T101500Z.md
+Refused: .github/reports/20261125T101500Z.md breaks the publication rule; run status.
 ```
