@@ -1,0 +1,122 @@
+name: cd.docs
+
+# Builds the catalog site in docs/ from the catalog itself and deploys it to
+# GitHub Pages at the domain of .github/settings.json, with HTTPS enforced. A
+# pull request builds it only; main deploys it and smoke-tests what Pages
+# serves, down to a card for every published tool at its version. A
+# publication commit of a tool's release touches plugins/ and catalog files,
+# so a new version reaches the site with no hand in it; a new tool or skill
+# stops the build until docs/products.mjs has its card (AGENTS.md, "The site").
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/scripts/pages*.mjs'
+      - '.github/settings.json'
+      - '.github/workflows/cd.docs.yml'
+      - 'catalog.json'
+      - 'docs/**'
+      - 'plugins/**'
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/scripts/pages*.mjs'
+      - '.github/settings.json'
+      - '.github/workflows/cd.docs.yml'
+      - 'catalog.json'
+      - 'docs/**'
+      - 'plugins/**'
+  schedule:
+    - cron: 0 7 1 * * # at 07:00 on day-of-month 1, UTC
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: The reason for dispatching it manually.
+        type: string
+        default: manual healthcheck
+        required: true
+
+# a newer push to a pull request replaces its build; on main the runs queue,
+# so a deployment and its smoke test are never cut off halfway
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Building
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: read
+
+    steps:
+      # the release history of every tool comes from its <tool>--v* tags
+      - name: Checkout the repository
+        uses: actions/checkout@v7.0.1
+        with: { fetch-depth: 0 }
+      - name: Set up Node.js
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      - name: Set up GitHub Pages
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        id: pages
+        uses: actions/configure-pages@v6.0.0
+      # the build bakes the base path and the origin in: refuse a domain
+      # that .github/settings.json does not expect
+      - name: Check the Pages domain
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          BASE_URL: ${{ steps.pages.outputs.base_url }}
+        run: node .github/scripts/pages.mjs pages "${BASE_URL}"
+      - name: Resolve the preview URL
+        if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
+        run: node .github/scripts/pages.mjs site-env >>"${GITHUB_ENV}"
+
+      - name: Test the site data and the Pages checks
+        run: node --test .github/scripts/pages.test.mjs docs/catalog.test.mjs
+      - name: Install dependencies
+        working-directory: docs
+        run: npm ci --no-audit --no-fund
+      - name: Build the site
+        working-directory: docs
+        env:
+          TARGET: static
+          BASE_PATH: ${{ steps.pages.outputs.base_path || env.BASE_PATH }}
+          SITE_URL: ${{ steps.pages.outputs.base_url || env.SITE_URL }}
+        run: npm run build
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v5.0.0
+        with: { path: docs/dist }
+
+  deploy:
+    name: Deploying
+    needs: [ build ]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      id-token: write
+      pages: write
+
+    steps:
+      - name: Deploy it to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5.0.1
+      - name: Checkout the repository
+        uses: actions/checkout@v7.0.1
+      # Pages may serve the previous deployment for a few minutes: retries 20×15s
+      - name: Smoke-test the site
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: node .github/scripts/pages.mjs smoke "${PAGE_URL}"

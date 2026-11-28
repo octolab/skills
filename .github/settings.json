@@ -1,0 +1,7 @@
+{
+  "pages": {
+    "cname": "skills.octolab.org",
+    "https_enforced": true,
+    "build_type": "workflow"
+  }
+}

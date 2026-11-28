@@ -1,0 +1,39 @@
+name: doctor
+
+# A Pages domain or HTTPS change in Settings triggers no build: compare the
+# Pages configuration with .github/settings.json daily and smoke-test the
+# site, including a card for every tool that main publishes at its version.
+
+on:
+  schedule:
+    - cron: 0 6 * * * # at 06:00 every day, UTC
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: The reason for dispatching it manually.
+        type: string
+        default: manual healthcheck
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  doctor:
+    name: Diagnosing
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: read
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v7.0.1
+      - name: Set up Node.js
+        uses: actions/setup-node@v7.1.0
+        with: { node-version: 24 }
+
+      - name: Compare Pages with the settings
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/pages.mjs doctor
