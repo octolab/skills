@@ -4,7 +4,8 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: daily
+      interval: weekly
+      day: monday
       time: '05:00'
       timezone: UTC
     labels:
@@ -14,4 +15,18 @@ updates:
     commit-message:
       prefix: 'ci/cd'
       include: 'scope'
-    open-pull-requests-limit: 30
+
+  - package-ecosystem: npm
+    directory: /docs/
+    schedule:
+      interval: weekly
+      day: monday
+      time: '05:00'
+      timezone: UTC
+    labels:
+      - 'type: improvement'
+      - 'scope: docs'
+      - 'scope: deps'
+    commit-message:
+      prefix: 'docs'
+      include: 'scope'
