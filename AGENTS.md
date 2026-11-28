@@ -103,9 +103,8 @@ record without `skills`, as every single-skill tool and every publication
 before skills-action v0.2.0 writes, holds the main skill only.
 
 **Tags.** `<tool>--v<version>` points at the commit that published that version.
-Tags are never moved or deleted: the action never does it, and nobody
-does it by hand. A ruleset enforcing this is deferred until the first
-publications work end to end.
+Tags are never moved or deleted: the action never does it, and the
+ruleset "release tags" refuses it to everyone, admins included.
 
 ## Publishing
 
@@ -218,9 +217,8 @@ live site. [docs/README.md](docs/README.md) has the details.
 
 Not covered automatically: upgrading an installed plugin from one release to
 the next. Codex accepts only git hosts for upgradable catalogs, so this needs
-two real releases; check it by hand when a tool publishes its second release. While the
-catalog is empty, the "Marketplace has no plugins defined" warning is the one
-finding tolerated.
+two real releases. It was checked by hand with maintainer releases up to v0.6.2;
+check it again when a channel changes how it upgrades plugins.
 
 ## Repository settings
 
@@ -237,7 +235,7 @@ app. Configure by hand:
   app applies `.github/settings.yml`. Set Pages first: until the domain in
   Settings matches `pages.cname` and Enforce HTTPS is on, `cd.docs` on main
   stops at "Check the Pages domain": Pages reports an `http://` URL until
-  HTTPS is enforced.
-
-Deferred: a tag ruleset for `*--v*` that blocks updates and deletions and
-allows creation.
+  HTTPS is enforced;
+- the tag ruleset "release tags" for `refs/tags/*--v*`: active, rules
+  "Restrict updates" and "Restrict deletions", no bypass, so creation stays
+  open to the GitHub App.
