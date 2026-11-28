@@ -4,6 +4,9 @@ OctoLab's catalog of [agent skills](https://agentskills.io) that teach coding
 agents — Claude Code, Codex and others — to use OctoLab command-line tools.
 <!-- 📚 Skills to use OctoLab products. -->
 
+Browse what the catalog holds, with a card and a link to the site of every
+tool, at **<https://skills.octolab.org/>**.
+
 Each skill ships with its tool: it lives in the tool's repository, is released
 with the binary, and the tool's release workflow copies it here, the same way
 [octolab/homebrew-tap](https://github.com/octolab/homebrew-tap) receives the

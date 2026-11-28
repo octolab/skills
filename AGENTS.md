@@ -1,8 +1,9 @@
 # Agent guide
 
 This repository is a catalog of agent skills for OctoLab tools. It is filled by
-the tools' release workflows, like `octolab/homebrew-tap`, and holds only data:
-the publisher, the checks and the generator live in
+the tools' release workflows, like `octolab/homebrew-tap`, and holds only data
+and the site that shows it at <https://skills.octolab.org/>. The publisher, the
+checks and the generator live in
 [octomation/skills-action](https://github.com/octomation/skills-action). Read this
 before changing anything.
 
@@ -15,6 +16,8 @@ before changing anything.
 | `.claude-plugin/marketplace.json` | `octolab-skills generate` | never; regenerate |
 | `plugins/<tool>/.claude-plugin/plugin.json` | `octolab-skills generate` | never; regenerate |
 | `README.md`, `AGENTS.md`, `.github/` | maintainers | yes |
+| `docs/products.mjs` | maintainers | yes: the card of every registered tool on the site |
+| `docs/` other than `products.mjs` | maintainers | yes: the site, see [docs/README.md](docs/README.md) |
 
 After changing a tool's description, homepage or keywords in `catalog.json`,
 run `npx --yes github:octomation/skills-action#vX.Y.Z generate` with the version
@@ -29,6 +32,8 @@ and ships with its next release; never patch `plugins/<tool>/` here.
 
 ```text
 catalog.json                        registry: tools allowed to publish
+docs/                               the catalog site, built from the files below
+  products.mjs                      the cards of the site, by hand
 .claude-plugin/marketplace.json     catalog "octolab" for Claude Code, Codex, skills CLI
 plugins/<tool>/
   .claude-plugin/plugin.json        generated; version = the tool release
@@ -62,7 +67,8 @@ follows the catalog's local `./plugins/<tool>` entries. Keep every entry local:
 remote sources are invisible to the skills CLI.
 
 Don't add a `bin/` or `CLAUDE.md` to a plugin root, or SKILL.md files anywhere
-outside `plugins/`: the skills CLI would discover them.
+outside `plugins/`, the site in `docs/` included: the skills CLI would discover
+them.
 
 ## Contracts
 
@@ -120,10 +126,76 @@ App token trigger `ci.install.yml`.
 
 1. Register it in `catalog.json` and add a section to `README.md`; list its
    extra skills, if any, under `extra-skills`.
-2. Add the token and publish steps from the action's README to the tool's
+2. Add its card to `docs/products.mjs`, as [The site](#the-site) describes,
+   in the same pull request: `cd.docs` builds the pull request and stops
+   without the card. The site shows the tool from its first publication.
+3. Add the token and publish steps from the action's README to the tool's
    release workflow; the action reads the tool with the workflow's own
    `github.token`.
-3. Release the tool; check that `ci` and `ci.install` pass.
+4. Release the tool; check that `ci`, `ci.install` and `cd.docs` pass and
+   that the tool's card is on <https://skills.octolab.org/>.
+
+## The site
+
+`docs/` builds <https://skills.octolab.org/>, one page that shows what the
+catalog holds and links each tool to its own site. Everything that changes
+with a release, the version, the skills, the supported binaries, the source
+tag, the digest, the publication date and the release history, is read at
+build time from `catalog.json`, `plugins/<tool>/` and the `<tool>--v*` tags
+(`docs/catalog.mjs`). What a person reads about a tool is written by hand in
+`docs/products.mjs`; for now nothing else writes it.
+
+A publication commit touches `plugins/`, so it runs `cd.docs`, which rebuilds
+and deploys the site. What each event needs:
+
+| Event | By hand |
+| --- | --- |
+| A new release of a published tool | nothing; check the card after `cd.docs` |
+| A new tool | its card in `docs/products.mjs`, in the pull request that registers it |
+| A new extra skill | its summary under the tool's `skills`, in the pull request that registers it |
+| A new site, release notes path or install command of a tool | the card's fields |
+| A homepage or repository in `catalog.json` | the site reads them; move the card's `guide` and `releaseNotes` with the homepage, and regenerate as above |
+| A registered tool removed from `catalog.json` | remove its card too: the build refuses a card it cannot match |
+
+A card is an entry of `products`, under the tool's name:
+
+```js
+maintainer: {
+  emoji: '👨‍🔧',                     // the tool's own emoji, as its README and site use it
+  tagline: 'Keep the little things moving.', // the tool's slogan, from its site
+  summary: 'Keep a workspace of …',  // one sentence: what the tool does, not the skill
+  install: 'brew install --formula octolab/tap/maintainer', // how to get the binary
+  guide: 'https://maintainer.octolab.org/agents/',          // the tool's page about agents
+  releaseNotes: 'https://maintainer.octolab.org/changelog/v{version}/', // {version} is the published one
+  embedded: true,                    // the binary has `skill install`; false when omitted
+  skills: {                          // one line per registered skill, main first
+    maintainer: 'Plans and applies fetch, …',
+    review: 'Writes a code, issue or security review report …',
+  },
+},
+```
+
+Take the words from the tool's own site and README, not from its SKILL.md: a
+skill's description is written for an agent to choose it, a card for a person.
+Check every link with `curl -sI`, and that the release notes path holds for
+the published version. `emoji`, `tagline`, `summary`, `install` and a summary
+for every registered skill are required; `guide` and `releaseNotes` are
+optional; `embedded` is false unless the card says true.
+
+The build stops, naming the file and the tool, when a registered tool has no
+card or misses a required field, a registered skill has no summary, a card or
+summary names something `catalog.json` does not register, or a plugin
+publishes a skill the registry does not list. These are checked whether or
+not the tool has published, so a registration without its card fails its own
+pull request, not the first publication on main. A registered tool shows only
+once `plugins/<tool>/provenance.json` exists. A tool can't be named `tools`,
+`install` or `versions`: those are the anchors of the page's sections. To see
+the page, run the site as [docs/README.md](docs/README.md) says; its tests are
+`node --test .github/scripts/pages.test.mjs docs/catalog.test.mjs`.
+
+After the deploy, `cd.docs` and the daily `doctor` check that the page shows a
+card for every published tool at its version: a red `doctor` the morning after
+a release means the site did not deploy it; read the failed `cd.docs` run.
 
 ## Checks
 
@@ -139,6 +211,11 @@ every channel and compares every skill that the action's `inspect` reads from
 the tag with the tool's release: each new tag, weekly and on a change of the
 workflow the latest tag of every tool.
 
+`cd.docs` builds the site on every pull request that touches it, the catalog
+or `plugins/`, and deploys it from main to GitHub Pages; the daily `doctor`
+compares the Pages settings with `.github/settings.json` and smoke-tests the
+live site. [docs/README.md](docs/README.md) has the details.
+
 Not covered automatically: upgrading an installed plugin from one release to
 the next. Codex accepts only git hosts for upgradable catalogs, so this needs
 two real releases; check it by hand when a tool publishes its second release. While the
@@ -151,7 +228,16 @@ finding tolerated.
 app. Configure by hand:
 
 - no required reviews on `main`, so the GitHub App can commit;
-- the GitHub App "OctoLab Releaser" with contents write access.
+- the GitHub App "OctoLab Releaser" with contents write access;
+- Settings → Pages: Source **GitHub Actions**, custom domain
+  `skills.octolab.org` with Enforce HTTPS, as `pages` in
+  `.github/settings.json` declares; the `github-pages` environment deploys
+  from `main` only. Nothing applies `.github/settings.json`: `pages.mjs` reads
+  it to check the build and the live site against Settings, while the settings
+  app applies `.github/settings.yml`. Set Pages first: until the domain in
+  Settings matches `pages.cname` and Enforce HTTPS is on, `cd.docs` on main
+  stops at "Check the Pages domain": Pages reports an `http://` URL until
+  HTTPS is enforced.
 
 Deferred: a tag ruleset for `*--v*` that blocks updates and deletions and
 allows creation.
