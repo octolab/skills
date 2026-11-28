@@ -1,0 +1,25 @@
+{
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "^16.4.6",
+    "nextra": "^4.6.1",
+    "nextra-theme-docs": "^4.6.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "overrides": {
+    "nextra-theme-docs": {
+      "zod": "4.1.12"
+    },
+    "speech-rule-engine@4.1.4": {
+      "@xmldom/xmldom": "^0.9.12"
+    },
+    "katex": "^0.18.2",
+    "minimatch": "^11.0.1"
+  }
+}

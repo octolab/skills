@@ -1,0 +1,24 @@
+/*
+ * The brand of the catalog, loaded after globals.css, which is kept
+ * byte-identical to octopot/indexit. Only the tokens differ: the cream of a
+ * card in a library catalog, the plum-black ink of its typed lines and, for the
+ * accent, the violet of a library date stamp. Every sibling site owns one hue;
+ * violet is the catalog's.
+ *
+ * Both blocks restate every token they change: :root and .dark have the same
+ * specificity, so a :root rule here would also win over the dark theme.
+ * Contrast (WCAG): accent 7.2:1 on paper, 6.5:1 on wash; muted 6.2:1 on
+ * paper, 5.6:1 on wash. In the dark, accent 8.7:1 and muted 7.8:1 on paper,
+ * 8.0:1 and 7.1:1 on wash. The stamp is the accent.
+ */
+:root {
+  --paper: #f9f7f2; --ink: #221d33; --muted: #5e5a6c; --line: #e1dcd2;
+  --accent: #5b3fa8; --wash: #f0ece3; --card: #fffdf8;
+  --stamp: #5b3fa8; --shadow: 34 29 51;
+}
+.dark {
+  --paper: #131119; --ink: #ece8f3; --muted: #aaa4b9; --line: #2e2a39;
+  --accent: #b9a5f5; --wash: #1d1a26; --card: #17151f;
+  --stamp: #b9a5f5; --shadow: 0 0 0;
+}
+::selection { background: #ddd3fb; color: #221d33; }

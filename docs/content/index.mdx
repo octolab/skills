@@ -1,0 +1,74 @@
+---
+title: "Teach your agent every OctoLab tool."
+description: "The catalog of agent skills for OctoLab command-line tools. Each skill ships with its tool’s release and teaches Claude Code, Codex or any agent of the skills CLI to use the tool at the version you run."
+---
+
+import { HeroInstall, HeroNote, Shelf, Tools, Channels, Pin } from '../components/catalog'
+import { Reveal } from '../components/reveal'
+
+<div className="home sk-home">
+  <section className="hero">
+    <div className="hero-copy">
+      <a className="release-pill" href="https://github.com/octolab/skills">octolab/skills · the catalog <span aria-hidden="true">↗</span></a>
+      <p className="eyebrow">AGENT SKILLS FOR OCTOLAB TOOLS</p>
+      <h1>Teach your agent<br />every <em>OctoLab tool.</em></h1>
+      <p className="hero-lead">Each OctoLab command-line tool ships a skill with its release: what the tool does, how to call it, what its output means. The catalog brings them together, so Claude Code, Codex and the agents of the skills CLI install them by name.</p>
+      <div className="hero-actions">
+        <a className="button-primary" href="#tools">Browse the tools <span aria-hidden="true">↓</span></a>
+        <a className="button-text" href="#install">Every way to install <span aria-hidden="true">→</span></a>
+      </div>
+      <HeroNote />
+    </div>
+    <HeroInstall />
+  </section>
+
+  <div className="flow-strip" role="group" aria-label="How a skill reaches your agent"><span>01 <b>The tool is released</b></span><span aria-hidden="true">→</span><span>02 <b>Its skill is checked</b></span><span aria-hidden="true">→</span><span>03 <b>Copied here, frozen</b></span><span aria-hidden="true">→</span><span>04 <b>Your agent installs it</b></span></div>
+
+  <section className="sk-section" id="tools">
+    <div className="section-heading sk-heading">
+      <div><p className="eyebrow">THE CATALOG</p><h2>One card per tool.<br />Its site is one click away.</h2></div>
+      <Shelf />
+    </div>
+    <Tools />
+    <p className="sk-aside">A skill teaches an agent to use a tool; install the tool itself separately. Every card links to the tool’s own site, its release notes and its guide for coding agents.</p>
+  </section>
+
+  <section className="sk-section" id="install">
+    <div className="section-heading"><p className="eyebrow">FOUR CHANNELS</p><h2>Pick one channel per agent.</h2></div>
+    <Channels />
+    <p className="sk-aside">Two copies of a skill, say a plugin and an installed copy, both load, and an outdated one can mislead the agent. The commands above show one tool of the catalog; the switch at the top and on every card shows them for each tool.</p>
+  </section>
+
+  <section className="sk-feature" id="versions">
+    <Reveal>
+      <p className="eyebrow">VERSIONS AND COMPATIBILITY</p>
+      <h2>The skill is as old as the binary.</h2>
+      <p>A skill’s version is the version of the tool it was written for, and it states which binaries it supports: up to the next breaking release, which before 1.0 is the next minor version. A skill starts by checking the installed binary with <code>{'<tool> version'}</code>.</p>
+      <p><code>main</code> holds the latest release of every skill. Each release is also tagged <code>{'<tool>--v<version>'}</code>, so you can stay on one; a tool that embeds its skill installs the copy that matches the binary, offline.</p>
+      <a className="sk-more" href="https://github.com/octolab/skills#versions-and-compatibility">Versions in the README →</a>
+    </Reveal>
+    <Reveal className="sk-code">
+      <Pin />
+    </Reveal>
+  </section>
+
+  <section className="sk-feature is-flipped">
+    <Reveal>
+      <p className="eyebrow">FROZEN BY DESIGN</p>
+      <h2>Copied as released. Never patched here.</h2>
+      <p>A skill lives in its tool’s repository and is released with the binary. The tool’s release workflow checks it, copies it here in one signed commit with its source and digest, and tags it. A published skill never changes: a wrong one is fixed in the tool and ships with its next release.</p>
+      <a className="sk-more" href="https://skills-action.octolab.org/">How skills-action publishes →</a>
+    </Reveal>
+    <Reveal className="sk-ledger">
+      <ul aria-label="What every publication carries">
+        <li><span>The tool’s signed release tag</span><b>source</b></li>
+        <li><span>Every file of every skill, hashed</span><b>digest</b></li>
+        <li><span>One commit, signed by the publisher</span><b>commit</b></li>
+        <li><span>A tag per release, never moved</span><b>{'<tool>--v<version>'}</b></li>
+      </ul>
+    </Reveal>
+  </section>
+
+  <section className="release-band"><div><p className="eyebrow">THE PUBLISHER</p><h2>Ship the skill with the tool.</h2><p>skills-action is the GitHub Action that publishes a tool’s skills here and checks the catalog. Building a tool that should teach agents? Its documentation walks through the release workflow.</p></div><a className="button-primary" href="https://skills-action.octolab.org/">skills-action <span aria-hidden="true">↗</span></a></section>
+  <p className="scope-note">The catalog holds agent skills of OctoLab command-line tools, as their releases publish them. It does not install the tools: each card links to its site with the installation guide. The skills follow the <a href="https://agentskills.io">Agent Skills</a> format.</p>
+</div>

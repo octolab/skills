@@ -1,0 +1,50 @@
+<!doctype html>
+<!-- The source of public/og.png: render it with scripts/og.mjs. No tool names
+     or versions: the image stays true when the catalog grows. On the right, a
+     drawer of a library catalog: blank ruled cards, the front one stamped. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; width: 1733px; height: 908px; overflow: hidden; }
+  body { position: relative; display: grid; grid-template-columns: 900px 1fr; align-items: center; gap: 40px; padding: 0 96px; box-sizing: border-box;
+         background: radial-gradient(110% 90% at 8% 0%, #fffdf8 0%, #f9f7f2 50%, #f0ece3 100%); color: #221d33; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .mark { display: flex; align-items: center; gap: 20px; font: 750 60px/1 -apple-system, sans-serif; letter-spacing: -2.4px; }
+  .mark img { width: 72px; height: 72px; }
+  h1 { margin: 64px 0 0; font: 650 96px/1.04 -apple-system, sans-serif; letter-spacing: -5px; }
+  h1 em { font-style: normal; color: #5b3fa8; }
+  .line { margin: 36px 0 0; font: 26px/1.4 ui-monospace, Menlo, monospace; color: #5e5a6c; }
+  .host { position: absolute; left: 96px; bottom: 64px; font: 600 26px/1 ui-monospace, Menlo, monospace; color: #5b3fa8; }
+  .drawer { position: relative; height: 560px; }
+  .card { position: absolute; left: 0; right: 0; height: 360px; border: 2px solid #e1dcd2; border-radius: 18px; background: #fffdf8;
+          background-image: repeating-linear-gradient(to bottom, transparent 0 47px, #ebe6f3 47px 49px); box-shadow: 0 2px 0 rgb(34 29 51 / .05); }
+  .card::after { content: ''; position: absolute; left: 50%; bottom: -2px; width: 40px; height: 20px; margin-left: -20px; border: 2px solid #e1dcd2; border-bottom: none; border-radius: 20px 20px 0 0; background: #f6f3ec; }
+  .c3 { top: 0; transform: translateX(60px) scale(.9); opacity: .55; }
+  .c2 { top: 70px; transform: translateX(30px) scale(.95); opacity: .8; }
+  .c1 { top: 150px; box-shadow: 18px 22px 0 #e7e2d8; background-color: #fffdf8; }
+  .tab { position: absolute; top: -26px; left: 40px; width: 150px; height: 26px; border: 2px solid #e1dcd2; border-bottom: none; border-radius: 12px 12px 0 0; background: #fffdf8; }
+  .c2 .tab { left: 210px; } .c3 .tab { left: 380px; }
+  .c1 .rule { position: absolute; left: 36px; right: 36px; height: 12px; border-radius: 6px; background: #221d33; opacity: .82; }
+  .c1 .r1 { top: 46px; width: 46%; height: 22px; border-radius: 8px; }
+  .c1 .r2 { top: 112px; width: 70%; background: #5e5a6c; opacity: .4; }
+  .c1 .r3 { top: 160px; width: 58%; background: #5e5a6c; opacity: .4; }
+  .c1 .r4 { top: 208px; width: 64%; background: #5e5a6c; opacity: .4; }
+  .stamp { position: absolute; right: 40px; top: 30px; padding: 8px 16px; border: 3px solid #5b3fa8; border-radius: 8px; color: #5b3fa8; font: 700 22px/1 ui-monospace, Menlo, monospace; letter-spacing: .12em; transform: rotate(-6deg); }
+  .rod { position: absolute; left: -40px; right: -40px; top: 505px; height: 8px; border-radius: 4px; background: #d8d1c4; }
+</style>
+</head>
+<body>
+  <div>
+    <div class="mark"><img src="../public/icon.svg" alt="">skills</div>
+    <h1>Teach your agent<br>every <em>OctoLab tool.</em></h1>
+    <p class="line">Claude Code · Codex · the skills CLI</p>
+  </div>
+  <div class="drawer" aria-hidden="true">
+    <div class="card c3"><span class="tab"></span></div>
+    <div class="card c2"><span class="tab"></span></div>
+    <div class="card c1"><span class="tab"></span><span class="rule r1"></span><span class="rule r2"></span><span class="rule r3"></span><span class="rule r4"></span><span class="stamp">PUBLISHED</span></div>
+    <div class="rod"></div>
+  </div>
+  <div class="host">skills.octolab.org</div>
+</body>
+</html>
